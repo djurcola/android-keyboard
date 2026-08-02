@@ -38,6 +38,11 @@ jobs:
 
       - name: Build unstable debug APK
         run: ./gradlew assembleUnstableDebug --console=plain
+        env:
+          # CI checks out a detached feature-branch commit; do not depend on a local master ref.
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 0.1.30-test.${{ github.run_number }}
+          BRANCH_NAME: ${{ github.ref_name }}
 
       - name: Upload testing APK
         uses: actions/upload-artifact@v4
