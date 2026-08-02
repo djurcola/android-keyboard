@@ -44,6 +44,22 @@
     <!-- Must be fairly short -->
     <string name="action_emoji_search_for_emojis">Search</string>
 
+    <!-- For GIF menu action -->
+    <string name="action_gif_title">GIFs</string>
+    <string name="action_gif_search_placeholder">Search GIFs</string>
+    <string name="action_gif_no_results">No GIFs found</string>
+    <string name="action_gif_retry">Retry</string>
+    <string name="action_gif_error_generic">Something went wrong while loading GIFs.</string>
+    <string name="action_gif_download_failed">Could not download this GIF. Check your connection and try again.</string>
+    <string name="action_gif_insert_failed">This app does not support inserting GIFs.</string>
+    <string name="action_gif_no_api_key_title">Set up GIF search</string>
+    <string name="action_gif_no_api_key_subtitle">GIF search uses GIPHY and needs your own API key. Requests are only sent after you add one.</string>
+    <string name="action_gif_save_api_key">Save</string>
+    <string name="giphy_settings_api_key">GIPHY API key</string>
+    <string name="giphy_settings_api_key_subtitle">Required to search and send GIFs.</string>
+    <string name="giphy_settings_api_key_placeholder">Paste your GIPHY API key</string>
+    <string name="giphy_settings_api_key_help">Get a free key from developers.giphy.com. The key is stored only on this device and is sent directly to GIPHY when you search. No requests are made until a key is set.</string>
+
     <!-- For voice input action -->
     <string name="action_voice_input_title">Voice Input</string>
     <!-- Same as the one above but it uses the device's default system voice input instead of the built-in -->
@@ -544,6 +560,9 @@
 
     <string name="swipe_settings_sensitive_swipe">Increase sensitivity</string>
     <string name="swipe_settings_sensitive_swipe_subtitle">Make swipe trigger more often</string>
+
+    <string name="swipe_settings_surface_swipe_delete">Swipe to delete words</string>
+    <string name="swipe_settings_surface_swipe_delete_subtitle">Swipe left on the keyboard to delete the previous word.</string>
 
     <string name="swipe_settings_kasroz">KASROZ</string>
     <string name="swipe_settings_kasroz_subtitle">The best keyboard layout to swipe</string>
