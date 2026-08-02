@@ -20,33 +20,67 @@ public final class SurfaceSwipeDeleteDetector {
     private int mStep;
     private int mStartX;
     private boolean mActive;
+    private int mSelectedWords;
+    private long mHoldTimeout;
+    private long mActivationTime;
+    private boolean mAdjustmentEnabled;
 
-    public void start(final int startX, final int step) {
+    public void start(final int startX, final int step, final long holdTimeout) {
         mStartX = startX;
         mStep = step > 0 ? step : 1;
+        mHoldTimeout = holdTimeout;
         mActive = false;
+        mSelectedWords = 0;
+        mAdjustmentEnabled = false;
     }
 
     public boolean isActive() {
         return mActive;
     }
 
-    public void cancel() {
-        mActive = false;
+    public int getSelectedWords() {
+        return mSelectedWords;
     }
 
-    public int onMove(final int x, final boolean isRTL) {
-        final int steps = (x - mStartX) / mStep;
+    public void cancel() {
+        mActive = false;
+        mSelectedWords = 0;
+        mAdjustmentEnabled = false;
+    }
+
+    public int onMove(final int x, final boolean isRTL, final long eventTime) {
         if (!mActive) {
+            final int steps = (x - mStartX) / mStep;
             if (steps >= 0) {
                 return 0;
             }
             mActive = true;
+            mSelectedWords = 1;
+            mActivationTime = eventTime;
+            mAdjustmentEnabled = false;
+            mStartX = x;
+            return isRTL ? 1 : -1;
         }
+        if (!mAdjustmentEnabled) {
+            if (eventTime - mActivationTime < mHoldTimeout) {
+                return 0;
+            }
+            mAdjustmentEnabled = true;
+            mStartX = x;
+        }
+        final int steps = (x - mStartX) / mStep;
         if (steps == 0) {
             return 0;
         }
+        final int rawDelta = isRTL ? -steps : steps;
+        final int wordDelta = isRTL ? rawDelta : -rawDelta;
+        final int selectedWords = Math.max(0, mSelectedWords + wordDelta);
+        final int appliedDelta = selectedWords - mSelectedWords;
+        mSelectedWords = selectedWords;
         mStartX += steps * mStep;
-        return isRTL ? -steps : steps;
+        if (appliedDelta == 0) {
+            return 0;
+        }
+        return isRTL ? appliedDelta : -appliedDelta;
     }
 }
