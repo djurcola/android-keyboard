@@ -1,0 +1,75 @@
+name: Sync custom GIF and swipe branch from FUTO
+
+on:
+  schedule:
+    # Daily at 21:17 UTC; offset avoids the busiest Actions queue period.
+    - cron: '17 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out custom branch
+        uses: actions/checkout@v4
+        with:
+          ref: custom/gif-and-swipe
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Fetch and merge FUTO upstream
+        id: merge
+        run: |
+          git config user.name "djurcola custom-branch bot"
+          git config user.email "59278980+djurcola@users.noreply.github.com"
+          git remote add upstream https://github.com/futo-org/android-keyboard.git
+          git fetch upstream master --tags
+          if git merge-base --is-ancestor upstream/master HEAD; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git merge --no-edit --no-ff upstream/master
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 17
+        if: steps.merge.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        if: steps.merge.outputs.changed == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install native build dependencies
+        if: steps.merge.outputs.changed == 'true'
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "ndk;28.2.13676358" "cmake;3.22.1"
+
+      - name: Validate and build custom APK
+        if: steps.merge.outputs.changed == 'true'
+        run: ./gradlew testUnstableDebugUnitTest assembleUnstableDebug --console=plain
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 0.1.30-custom.${{ github.run_number }}
+          BRANCH_NAME: custom/gif-and-swipe
+
+      - name: Push validated upstream merge
+        if: steps.merge.outputs.changed == 'true'
+        run: git push origin HEAD:custom/gif-and-swipe
+
+      - name: Upload custom APK
+        if: steps.merge.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-keyboard-custom-gif-and-swipe-${{ github.sha }}
+          path: build/outputs/apk/unstable/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
