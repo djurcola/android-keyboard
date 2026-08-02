@@ -65,6 +65,11 @@ jobs:
         if: steps.merge.outputs.changed == 'true'
         run: git push origin HEAD:custom/gif-and-swipe
 
+      - name: Record custom branch revision
+        if: steps.merge.outputs.changed == 'true'
+        id: custom_revision
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Upload custom APK
         if: steps.merge.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
@@ -73,3 +78,17 @@ jobs:
           path: build/outputs/apk/unstable/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish GitHub Release for Obtainium
+        if: steps.merge.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: custom-${{ github.run_id }}
+          name: Custom GIF + Swipe build ${{ github.run_number }}
+          target_commitish: ${{ steps.custom_revision.outputs.commit }}
+          body: |
+            Automated custom FUTO Keyboard build containing the GIF action and swipe-to-delete refinement.
+
+            This is an unstable development build from `custom/gif-and-swipe`.
+          files: build/outputs/apk/unstable/debug/*.apk
+          generate_release_notes: true
