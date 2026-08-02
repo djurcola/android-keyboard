@@ -352,7 +352,7 @@ android {
 
         unstable {
             java.srcDirs = ['common/src', 'java/src', 'java/stable/java']
-            manifest.srcFile 'java/stable/AndroidManifest.xml'
+            manifest.srcFile 'java/unstable/AndroidManifest.xml'
             res.srcDirs = ['java/unstable/res', translationsWithoutEngValues('translations/devbuild')]
         }
 
