@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-unstable-debug-apk:
@@ -49,3 +49,16 @@ jobs:
           path: build/outputs/apk/unstable/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish GitHub Release for Obtainium
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: custom-${{ github.run_id }}
+          name: Custom GIF + Swipe build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          body: |
+            Automated custom FUTO Keyboard build containing the GIF action and swipe-to-delete refinement.
+
+            This is an unstable development build from `custom/gif-and-swipe`.
+          files: build/outputs/apk/unstable/debug/*.apk
+          generate_release_notes: true
