@@ -3,7 +3,7 @@ name: Build testing APK
 on:
   push:
     branches:
-      - feat/swipe-delete-and-gif-actions
+      - dev/swipe-hold-and-gif
   workflow_dispatch:
 
 permissions:
