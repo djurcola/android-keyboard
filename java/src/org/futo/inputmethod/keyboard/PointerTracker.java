@@ -725,6 +725,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onDownEventInternal(final int x, final int y, final long eventTime) {
+        final int surfaceSwipeHoldTimeout =
+                Settings.getInstance().getCurrent().mKeyLongpressTimeout;
         Key key = onDownKey(x, y, eventTime);
         // Key selection by dragging finger is allowed when 1) key selection by dragging finger is
         // enabled by configuration, 2) this pointer starts dragging from modifier key, or 3) this
@@ -776,14 +778,14 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
             if (!mIsSlidingCursor && !mIsFlickingKey && !key.isModifier()) {
                 mIsSurfaceSwiping = true;
-                mSurfaceSwipeDeleteDetector.start(x, sPointerBigStep);
+                mSurfaceSwipeDeleteDetector.start(x, sPointerBigStep, surfaceSwipeHoldTimeout);
             }
         } else {
             mStartX = x;
             mStartY = y;
             mStartTime = System.currentTimeMillis();
             mIsSurfaceSwiping = true;
-            mSurfaceSwipeDeleteDetector.start(x, sPointerBigStep);
+            mSurfaceSwipeDeleteDetector.start(x, sPointerBigStep, surfaceSwipeHoldTimeout);
         }
     }
 
@@ -1055,7 +1057,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             final boolean pastDeadTime =
                     mStartTime + swipeIgnoreTime < System.currentTimeMillis();
             if (mSurfaceSwipeDeleteDetector.isActive() || pastDeadTime) {
-                final int steps = mSurfaceSwipeDeleteDetector.onMove(x, settingsValues.mIsRTL);
+                final int steps =
+                        mSurfaceSwipeDeleteDetector.onMove(x, settingsValues.mIsRTL, eventTime);
                 if (steps != 0) {
                     if (oldKey != null) {
                         sTimerProxy.cancelKeyTimersOf(this);
