@@ -17,6 +17,8 @@ jobs:
       - name: Check out source and build resources
         uses: actions/checkout@v4
         with:
+          # build.gradle derives version metadata from master and tags.
+          fetch-depth: 0
           submodules: recursive
 
       - name: Set up JDK 17
