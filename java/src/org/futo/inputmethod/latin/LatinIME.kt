@@ -461,6 +461,12 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
         }
 
         launchJob {
+            getSettingFlow(SubtypesSetting).collect {
+                Subtypes.updateLanguageOnSpaceBarVisibility(this@LatinIME)
+            }
+        }
+
+        launchJob {
             dataStore.data.collect {
                 CrashLoggingApplication.logPreferences(it)
             }
@@ -832,24 +838,26 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
     }
 
     fun blacklistWord(suggestedWordInfo: SuggestedWordInfo?) = lifecycleScope.launch {
-        if(suggestedWordInfo != null) {
-            val existingWords = getSetting(SUGGESTION_BLACKLIST).toMutableSet()
-            existingWords.add(suggestedWordInfo.mWord)
-            setSetting(SUGGESTION_BLACKLIST, existingWords)
-        }
+        val word = suggestedWordInfo?.mWord
+        if(word != null) {
+            SuggestionBlacklist.addToBlacklistSetting(this@LatinIME, word)
 
-        imeManager.getActiveIME(Settings.getInstance().current).let {
-            if(it is WordLearner && suggestedWordInfo != null) {
-                it.removeFromHistory(
-                    suggestedWordInfo.mWord,
-                    NgramContext.EMPTY_PREV_WORDS_INFO,
-                    -1,
-                    Constants.NOT_A_CODE
-                )
-            }
+            val settings = Settings.getInstance().current
+            imeManager.getActiveIME(settings).let { ime ->
+                if (ime is WordLearner) {
+                    SuggestionBlacklist.getCapitalVariants(word, settings.mLocale).forEach {
+                        ime.removeFromHistory(
+                            it,
+                            NgramContext.EMPTY_PREV_WORDS_INFO,
+                            -1,
+                            Constants.NOT_A_CODE
+                        )
+                    }
+                }
 
-            withContext(Dispatchers.Main) {
-                it.requestSuggestionRefresh()
+                withContext(Dispatchers.Main) {
+                    ime.requestSuggestionRefresh()
+                }
             }
         }
     }
