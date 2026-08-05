@@ -1208,6 +1208,17 @@ public final class InputLogic {
         final int codePoint = event.mCodePoint;
         final SettingsValues settingsValues = inputTransaction.mSettingsValues;
         final boolean wasComposingWord = mWordComposer.isComposingWord();
+        // A recapitalized word is kept selected so that Shift can cycle its case. If a
+        // separator is typed while that selection is active, commit the word first by
+        // collapsing the selection to its end, otherwise the separator would replace the
+        // selection and delete the word.
+        if (mRecapitalizeStatus.isStarted()
+                && mRecapitalizeStatus.isSetAt(mConnection.getExpectedSelectionStart(),
+                        mConnection.getExpectedSelectionEnd())) {
+            mConnection.setSelection(mRecapitalizeStatus.getNewCursorEnd(),
+                    mRecapitalizeStatus.getNewCursorEnd());
+            mRecapitalizeStatus.stop();
+        }
         // We avoid sending spaces in languages without spaces if we were composing.
         final boolean shouldAvoidSendingCode = Constants.CODE_SPACE == codePoint
                 && !settingsValues.mSpacingAndPunctuations.currentLanguageHasSpaces
