@@ -216,6 +216,19 @@ public class InputLogicTests extends InputTestsBase {
                 mEditText.getText().toString());
     }
 
+    public void testRecapitalizeThenSpaceDoesNotAutoCorrect() {
+        final String WORD_TO_TYPE = "tgis";
+        final String EXPECTED_AFTER_RECAP = "Tgis";
+        final String EXPECTED_RESULT = "Tgis ";
+        type(WORD_TO_TYPE);
+        type(Constants.CODE_SHIFT);
+        assertEquals("shift should recapitalize the word at the cursor",
+                EXPECTED_AFTER_RECAP, mEditText.getText().toString());
+        type(Constants.CODE_SPACE);
+        assertEquals("space should commit the recapitalized word, not a stale auto-correction",
+                EXPECTED_RESULT, mEditText.getText().toString());
+    }
+
     public void testDoubleSpace() {
         // U+1F607 is an emoji
         final String[] STRINGS_TO_TYPE =
