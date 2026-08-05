@@ -2031,6 +2031,7 @@ public final class InputLogic {
         mConnection.send();
         mConnection.setSelection(mRecapitalizeStatus.getNewCursorStart(),
                 mRecapitalizeStatus.getNewCursorEnd());
+        resetComposingState(true /* alsoResetLastComposedWord */);
     }
 
     private void performAdditionToUserHistoryDictionary(final SettingsValues settingsValues,
