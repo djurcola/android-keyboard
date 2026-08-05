@@ -35,11 +35,13 @@ public class StringUtilsTests {
     private static final Locale GERMAN = Locale.GERMAN;
     private static final Locale TURKEY = new Locale("tr", "TR");
     private static final Locale GREECE = new Locale("el", "GR");
-    private static final int[] WORD_SEPARATORS = StringUtils.toSortedCodePointArray(" .,!");
+    private static final int[] RECAPITALIZE_WORD_SEPARATORS =
+            StringUtils.toSortedCodePointArray(" .,!");
 
     private static void assertWordRange(final String before, final String after,
             final int expectedStart, final int expectedEnd) {
-        final int[] range = StringUtils.getWordRangeAtCursor(before, after, WORD_SEPARATORS);
+        final int[] range = StringUtils.getWordRangeAtCursor(before, after,
+                RECAPITALIZE_WORD_SEPARATORS);
         assertEquals(expectedStart, range[0]);
         assertEquals(expectedEnd, range[1]);
     }
@@ -52,8 +54,9 @@ public class StringUtilsTests {
         assertWordRange("", "café!", 0, 4);
         assertWordRange("go😀", "!", 0, 0);
         assertEquals(null, StringUtils.getWordRangeAtCursor("hello ", ". world",
-                WORD_SEPARATORS));
-        assertEquals(null, StringUtils.getWordRangeAtCursor("hello ", "", WORD_SEPARATORS));
+                RECAPITALIZE_WORD_SEPARATORS));
+        assertEquals(null, StringUtils.getWordRangeAtCursor("hello ", "",
+                RECAPITALIZE_WORD_SEPARATORS));
     }
 
     private static void assert_toTitleCaseOfKeyLabel(final Locale locale,
