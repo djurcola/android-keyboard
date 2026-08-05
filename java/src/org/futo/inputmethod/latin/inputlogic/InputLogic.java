@@ -1971,12 +1971,11 @@ public final class InputLogic {
      * @param settingsValues The current settings values.
      */
     private void performRecapitalization(final SettingsValues settingsValues) {
-        if (!mRecapitalizeStatus.mIsEnabled()) return;
-
         int selectionStart = mConnection.getExpectedSelectionStart();
         int selectionEnd = mConnection.getExpectedSelectionEnd();
         CharSequence textToRecapitalize;
         if (mConnection.hasSelection()) {
+            if (!mRecapitalizeStatus.mIsEnabled()) return;
             textToRecapitalize = mConnection.getSelectedText(0 /* flags, 0 for no styles */);
         } else {
             if (!mConnection.isCursorPositionKnown()) return;
@@ -1997,6 +1996,10 @@ public final class InputLogic {
                     && textAfterCursor.length() == Constants.MAX_CHARACTERS_FOR_RECAPITALIZATION)) {
                 return;
             }
+            // Existing recapitalization waits for a cursor-move callback after starting input.
+            // Cursor-only recapitalization has independently validated the current cursor and
+            // surrounding text, so it is safe to enable without requiring that extra movement.
+            mRecapitalizeStatus.enable();
             selectionStart -= textBeforeCursor.length() - wordRange[0];
             selectionEnd += wordRange[1];
             textToRecapitalize = textBeforeCursor.subSequence(wordRange[0],
