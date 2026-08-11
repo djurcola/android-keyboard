@@ -22,16 +22,16 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ShiftSwipeRecapitalizeDetectorTest {
+public class SurfaceSwipeRecapitalizeDetectorTest {
     private static final int START_X = 100;
     private static final int START_Y = 200;
     private static final int THRESHOLD = 32;
 
-    private ShiftSwipeRecapitalizeDetector mDetector;
+    private SurfaceSwipeRecapitalizeDetector mDetector;
 
     @Before
     public void setUp() {
-        mDetector = new ShiftSwipeRecapitalizeDetector();
+        mDetector = new SurfaceSwipeRecapitalizeDetector();
         mDetector.start(START_X, START_Y, THRESHOLD);
     }
 
@@ -59,8 +59,20 @@ public class ShiftSwipeRecapitalizeDetectorTest {
     }
 
     @Test
+    public void downwardMovementRejectsGesture() {
+        assertFalse(mDetector.onMove(START_X, START_Y + THRESHOLD, true));
+        assertFalse(mDetector.onMove(START_X, START_Y - 2 * THRESHOLD, true));
+    }
+
+    @Test
     public void multiplePointersRejectGesture() {
         assertFalse(mDetector.onMove(START_X, START_Y - THRESHOLD, false));
         assertFalse(mDetector.onMove(START_X, START_Y - 2 * THRESHOLD, true));
+    }
+
+    @Test
+    public void cancelRejectsGesture() {
+        mDetector.cancel();
+        assertFalse(mDetector.onMove(START_X, START_Y - THRESHOLD, true));
     }
 }

@@ -138,6 +138,8 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final int SPACEBAR_MODE_LANGUAGE = 2;
 
     public static final String PREF_SURFACE_SWIPE_DELETE = "pref_surface_swipe_delete";
+    public static final String PREF_SURFACE_SWIPE_RECAPITALIZE =
+            "pref_surface_swipe_recapitalize";
 
     public static final String PREF_BACKSPACE_MODE_HOLD = "pref_backspace_mode_hold";
     public static final String PREF_BACKSPACE_MODE = "pref_backspace_mode";

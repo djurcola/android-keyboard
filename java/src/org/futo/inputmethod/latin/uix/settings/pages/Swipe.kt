@@ -239,6 +239,13 @@ val SwipeMenu = UserSettingsMenu(
             default = {true},
         ),
 
+        userSettingToggleSharedPrefs(
+            title = R.string.swipe_settings_surface_swipe_recapitalize,
+            subtitle = R.string.swipe_settings_surface_swipe_recapitalize_subtitle,
+            key = Settings.PREF_SURFACE_SWIPE_RECAPITALIZE,
+            default = {true},
+        ),
+
         // KASROZ is primarily for English and the menu isn't translated, so it's hidden if user
         // doesn't have English layout
         UserSetting(R.string.swipe_settings_kasroz, subtitle = R.string.swipe_settings_kasroz_subtitle, visibilityCheck = {

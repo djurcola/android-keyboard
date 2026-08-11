@@ -230,14 +230,14 @@ public class InputLogicTests extends InputTestsBase {
         final String EXPECTED_RESULT = "Tgis ";
         type(WORD_TO_TYPE);
         type(Constants.CODE_RECAPITALIZE);
-        assertEquals("recapitalize action from an upward Shift swipe should recapitalize the word",
+        assertEquals("recapitalize action should recapitalize the word",
                 EXPECTED_AFTER_RECAP, mEditText.getText().toString());
         type(Constants.CODE_SPACE);
         assertEquals("space should commit the recapitalized word, not a stale auto-correction",
                 EXPECTED_RESULT, mEditText.getText().toString());
     }
 
-    public void testRecapitalizeSwipeShiftCyclingThenSpace() {
+    public void testRecapitalizeSwipeCyclingThenSpace() {
         final String WORD_TO_TYPE = "tgis";
         type(WORD_TO_TYPE);
         type(Constants.CODE_RECAPITALIZE);
@@ -255,7 +255,7 @@ public class InputLogicTests extends InputTestsBase {
         final String WORD_TO_TYPE = "tgis";
         type(WORD_TO_TYPE);
         type(Constants.CODE_RECAPITALIZE);
-        assertEquals("recapitalize action from an upward Shift swipe should recapitalize the word",
+        assertEquals("recapitalize action should recapitalize the word",
                 "Tgis", mEditText.getText().toString());
         type(Constants.CODE_PERIOD);
         assertEquals("punctuation should commit the recapitalized word",

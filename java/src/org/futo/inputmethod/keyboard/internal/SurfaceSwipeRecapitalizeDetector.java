@@ -16,8 +16,8 @@
 
 package org.futo.inputmethod.keyboard.internal;
 
-/** Detects a deliberate, single-pointer upward swipe from Shift. */
-public final class ShiftSwipeRecapitalizeDetector {
+/** Detects a deliberate, single-pointer upward surface swipe. */
+public final class SurfaceSwipeRecapitalizeDetector {
     private int mStartX;
     private int mStartY;
     private int mThreshold;
@@ -35,8 +35,8 @@ public final class ShiftSwipeRecapitalizeDetector {
     }
 
     /**
-     * Returns true once an upward swipe has crossed the threshold. Horizontal and diagonal
-     * movement permanently rejects this gesture.
+     * Returns true once an upward swipe has crossed the threshold. Horizontal, diagonal, and
+     * downward movement permanently reject this gesture.
      */
     public boolean onMove(final int x, final int y, final boolean isSinglePointer) {
         if (!mEligible || !isSinglePointer) {
