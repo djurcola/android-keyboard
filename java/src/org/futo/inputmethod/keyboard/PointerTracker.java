@@ -36,6 +36,7 @@ import org.futo.inputmethod.keyboard.internal.KeyboardState;
 import org.futo.inputmethod.keyboard.internal.PointerTrackerQueue;
 import org.futo.inputmethod.keyboard.internal.SurfaceSwipeDeleteDetector;
 import org.futo.inputmethod.keyboard.internal.SurfaceSwipeRecapitalizeDetector;
+import org.futo.inputmethod.keyboard.internal.SurfaceSwipeRightRecapitalizeDetector;
 import org.futo.inputmethod.keyboard.internal.TimerProxy;
 import org.futo.inputmethod.keyboard.internal.TypingTimeRecorder;
 import org.futo.inputmethod.latin.R;
@@ -166,6 +167,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             new SurfaceSwipeDeleteDetector();
     private final SurfaceSwipeRecapitalizeDetector mSurfaceSwipeRecapitalizeDetector =
             new SurfaceSwipeRecapitalizeDetector();
+    private final SurfaceSwipeRightRecapitalizeDetector mSurfaceSwipeRightRecapitalizeDetector =
+            new SurfaceSwipeRightRecapitalizeDetector();
     private boolean mSurfaceSwipeRecapitalized;
 
     // true if keyboard layout has been changed.
@@ -689,6 +692,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (getActivePointerTrackerCount() > 1) {
             for (final PointerTracker tracker : sTrackers) {
                 tracker.mSurfaceSwipeRecapitalizeDetector.cancel();
+                tracker.mSurfaceSwipeRightRecapitalizeDetector.cancel();
             }
         }
         onDownEventInternal(x, y, eventTime);
@@ -749,6 +753,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mIsSurfaceSwiping = false;
         mSurfaceSwipeDeleteDetector.cancel();
         mSurfaceSwipeRecapitalizeDetector.cancel();
+        mSurfaceSwipeRightRecapitalizeDetector.cancel();
         mSurfaceSwipeRecapitalized = false;
         resetKeySelectionByDraggingFinger();
         if (key != null) {
@@ -787,9 +792,11 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             mFlickDirection = key.flickDirection(0, 0);
             mCurrentKey = key;
 
-            if (mKeyboard != null && mKeyboard.mId.isAlphabetKeyboard()
-                    && Character.isLetter(key.getCode()) && !key.isModifier() && !mIsFlickingKey) {
+            if (getActivePointerTrackerCount() == 1 && mKeyboard != null
+                    && mKeyboard.mId.isAlphabetKeyboard() && Character.isLetter(key.getCode())
+                    && !key.isModifier() && !mIsFlickingKey) {
                 mSurfaceSwipeRecapitalizeDetector.start(x, y, sPointerBigStep);
+                mSurfaceSwipeRightRecapitalizeDetector.start(x, y, sPointerBigStep);
             }
 
             if (!mIsSlidingCursor && !mIsFlickingKey && !key.isModifier()) {
@@ -1012,6 +1019,24 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             sTimerProxy.cancelKeyTimersOf(this);
             setReleasedKeyGraphics(oldKey, true /* withAnimation */);
             mSurfaceSwipeDeleteDetector.cancel();
+            mSurfaceSwipeRightRecapitalizeDetector.cancel();
+            mCurrentKey = null;
+            mIsDetectingGesture = false;
+            mSurfaceSwipeRecapitalized = true;
+            sListener.onCodeInput(Constants.CODE_RECAPITALIZE, Constants.NOT_A_COORDINATE,
+                    Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
+            mLastX = x;
+            mLastY = y;
+            return;
+        }
+
+        if (!sInGesture && settingsValues.mSurfaceSwipeRightRecapitalizeEnabled
+                && mSurfaceSwipeRightRecapitalizeDetector.onMove(x, y,
+                        getActivePointerTrackerCount() == 1)) {
+            sTimerProxy.cancelKeyTimersOf(this);
+            setReleasedKeyGraphics(oldKey, true /* withAnimation */);
+            mSurfaceSwipeDeleteDetector.cancel();
+            mSurfaceSwipeRecapitalizeDetector.cancel();
             mCurrentKey = null;
             mIsDetectingGesture = false;
             mSurfaceSwipeRecapitalized = true;
@@ -1311,6 +1336,13 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             return;
         }
         final int code = key.getCode();
+        if (code == Constants.CODE_SHIFT && mKeyboard != null && mKeyboard.mId.isAlphabetKeyboard()
+                && Settings.getInstance().getCurrent().mHoldShiftRecapitalizeEnabled) {
+            cancelKeyTracking();
+            sListener.onCodeInput(Constants.CODE_RECAPITALIZE, Constants.NOT_A_COORDINATE,
+                    Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
+            return;
+        }
         if (key.getHasNoPanelAutoMoreKey()) {
             cancelKeyTracking();
             final int moreKeyCode = key.getMoreKeys().get(0).mCode;
@@ -1386,6 +1418,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         dismissMoreKeysPanel();
         mSurfaceSwipeDeleteDetector.cancel();
         mSurfaceSwipeRecapitalizeDetector.cancel();
+        mSurfaceSwipeRightRecapitalizeDetector.cancel();
         mSurfaceSwipeRecapitalized = false;
         mIsSurfaceSwiping = false;
     }
@@ -1449,6 +1482,11 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private int getLongPressTimeout(final int code) {
         if (code == Constants.CODE_SHIFT) {
+            final SettingsValues settingsValues = Settings.getInstance().getCurrent();
+            if (mKeyboard != null && mKeyboard.mId.isAlphabetKeyboard()
+                    && settingsValues.mHoldShiftRecapitalizeEnabled) {
+                return settingsValues.mKeyLongpressTimeout;
+            }
             return sParams.mLongPressShiftLockTimeout;
         }
         final int longpressTimeout = Settings.getInstance().getCurrent().mKeyLongpressTimeout;

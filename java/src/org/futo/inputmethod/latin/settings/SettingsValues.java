@@ -112,6 +112,8 @@ public class SettingsValues {
     public final int mBackspaceModeHold;
     public final boolean mSurfaceSwipeDeleteEnabled;
     public final boolean mSurfaceSwipeRecapitalizeEnabled;
+    public final boolean mSurfaceSwipeRightRecapitalizeEnabled;
+    public final boolean mHoldShiftRecapitalizeEnabled;
     public final int mNumberRowMode;
     public final int mAltSpacesMode;
 
@@ -217,6 +219,10 @@ public class SettingsValues {
         mSurfaceSwipeDeleteEnabled = prefs.getBoolean(Settings.PREF_SURFACE_SWIPE_DELETE, true);
         mSurfaceSwipeRecapitalizeEnabled = prefs.getBoolean(
                 Settings.PREF_SURFACE_SWIPE_RECAPITALIZE, true);
+        mSurfaceSwipeRightRecapitalizeEnabled = prefs.getBoolean(
+                Settings.PREF_SURFACE_SWIPE_RIGHT_RECAPITALIZE, true);
+        mHoldShiftRecapitalizeEnabled = prefs.getBoolean(
+                Settings.PREF_HOLD_SHIFT_RECAPITALIZE, false);
         mNumberRowMode = mIsNumberRowEnabledByUser ?
                 prefs.getInt(Settings.PREF_NUMBER_ROW_MODE, Settings.NUMBER_ROW_MODE_DEFAULT)
                 : Settings.NUMBER_ROW_MODE_DEFAULT;

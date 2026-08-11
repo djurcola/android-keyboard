@@ -583,6 +583,10 @@
     <string name="swipe_settings_surface_swipe_delete_subtitle">Swipe left on the keyboard to delete the previous word. Keep holding after the swipe and move left or right to select more or fewer words before releasing.</string>
     <string name="swipe_settings_surface_swipe_recapitalize">Swipe up to recapitalize</string>
     <string name="swipe_settings_surface_swipe_recapitalize_subtitle">Swipe up from a letter key to cycle the capitalization of the previous word.</string>
+    <string name="swipe_settings_surface_swipe_right_recapitalize">Swipe right to recapitalize</string>
+    <string name="swipe_settings_surface_swipe_right_recapitalize_subtitle">Swipe right from a letter key to cycle the capitalization of the previous word.</string>
+    <string name="swipe_settings_hold_shift_recapitalize">Hold Shift to recapitalize</string>
+    <string name="swipe_settings_hold_shift_recapitalize_subtitle">Hold Shift to cycle the capitalization of the previous word instead of enabling Caps Lock.</string>
 
     <string name="swipe_settings_show_unsupported">Show unsupported settings…</string>
     <string name="swipe_settings_use_old_swipe">Use legacy swipe algorithm</string>

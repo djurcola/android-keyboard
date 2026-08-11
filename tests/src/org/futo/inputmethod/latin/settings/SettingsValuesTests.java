@@ -43,4 +43,50 @@ public class SettingsValuesTests extends InputTestsBase {
             editor.commit();
         }
     }
+
+    public void testSurfaceSwipeRightRecapitalizePreferenceDefaultsToEnabled() {
+        final SharedPreferences prefs =
+                PreferenceManager.getDefaultSharedPreferences(getService());
+        final boolean hadPreviousValue =
+                prefs.contains(Settings.PREF_SURFACE_SWIPE_RIGHT_RECAPITALIZE);
+        final boolean previousValue = prefs.getBoolean(
+                Settings.PREF_SURFACE_SWIPE_RIGHT_RECAPITALIZE, true);
+        try {
+            prefs.edit().remove(Settings.PREF_SURFACE_SWIPE_RIGHT_RECAPITALIZE).commit();
+            assertTrue(Settings.getInstance().getCurrent().mSurfaceSwipeRightRecapitalizeEnabled);
+
+            prefs.edit().putBoolean(Settings.PREF_SURFACE_SWIPE_RIGHT_RECAPITALIZE, false).commit();
+            assertFalse(Settings.getInstance().getCurrent().mSurfaceSwipeRightRecapitalizeEnabled);
+        } finally {
+            final SharedPreferences.Editor editor = prefs.edit();
+            if (hadPreviousValue) {
+                editor.putBoolean(Settings.PREF_SURFACE_SWIPE_RIGHT_RECAPITALIZE, previousValue);
+            } else {
+                editor.remove(Settings.PREF_SURFACE_SWIPE_RIGHT_RECAPITALIZE);
+            }
+            editor.commit();
+        }
+    }
+
+    public void testHoldShiftRecapitalizePreferenceDefaultsToDisabled() {
+        final SharedPreferences prefs =
+                PreferenceManager.getDefaultSharedPreferences(getService());
+        final boolean hadPreviousValue = prefs.contains(Settings.PREF_HOLD_SHIFT_RECAPITALIZE);
+        final boolean previousValue = prefs.getBoolean(Settings.PREF_HOLD_SHIFT_RECAPITALIZE, false);
+        try {
+            prefs.edit().remove(Settings.PREF_HOLD_SHIFT_RECAPITALIZE).commit();
+            assertFalse(Settings.getInstance().getCurrent().mHoldShiftRecapitalizeEnabled);
+
+            prefs.edit().putBoolean(Settings.PREF_HOLD_SHIFT_RECAPITALIZE, true).commit();
+            assertTrue(Settings.getInstance().getCurrent().mHoldShiftRecapitalizeEnabled);
+        } finally {
+            final SharedPreferences.Editor editor = prefs.edit();
+            if (hadPreviousValue) {
+                editor.putBoolean(Settings.PREF_HOLD_SHIFT_RECAPITALIZE, previousValue);
+            } else {
+                editor.remove(Settings.PREF_HOLD_SHIFT_RECAPITALIZE);
+            }
+            editor.commit();
+        }
+    }
 }
