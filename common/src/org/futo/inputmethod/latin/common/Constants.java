@@ -256,6 +256,8 @@ public final class Constants {
     public static final int CODE_OUTPUT_TEXT_WITH_SPACES = -23;
     // Code value representing the code is not specified.
     public static final int CODE_UNSPECIFIED = -24;
+    // Explicit action emitted when the alphabetic Shift key is long-pressed.
+    public static final int CODE_RECAPITALIZE = -25;
 
     public static final int CODE_ACTION_0 = -1050;
     public static final int CODE_ACTION_MAX = CODE_ACTION_0 + 100;
@@ -284,6 +286,7 @@ public final class Constants {
         case CODE_SHIFT_ENTER: return "shiftEnter";
         case CODE_ALPHA_FROM_EMOJI: return "alpha";
         case CODE_UNSPECIFIED: return "unspec";
+        case CODE_RECAPITALIZE: return "recapitalize";
         case CODE_TAB: return "tab";
         case CODE_ENTER: return "enter";
         case CODE_SPACE: return "space";

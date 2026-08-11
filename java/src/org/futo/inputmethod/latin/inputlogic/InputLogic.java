@@ -704,6 +704,7 @@ public final class InputLogic {
                    settingsValues, currentKeyboardScriptId);
         }
         if (!inputTransaction.didAutoCorrect() && processedEvent.mKeyCode != Constants.CODE_SHIFT
+                && processedEvent.mKeyCode != Constants.CODE_RECAPITALIZE
                 && processedEvent.mKeyCode != Constants.CODE_CAPSLOCK
                 && processedEvent.mKeyCode != Constants.CODE_SWITCH_ALPHA_SYMBOL)
             mLastComposedWord.deactivate();
@@ -928,6 +929,12 @@ public final class InputLogic {
                 inputTransaction.setDidAffectContents();
                 break;
             case Constants.CODE_SHIFT:
+                inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+                if (mSuggestedWords.isPrediction()) {
+                    inputTransaction.setRequiresUpdateSuggestions();
+                }
+                break;
+            case Constants.CODE_RECAPITALIZE:
                 performRecapitalization(inputTransaction.mSettingsValues);
                 inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
                 if (mSuggestedWords.isPrediction()) {

@@ -216,27 +216,35 @@ public class InputLogicTests extends InputTestsBase {
                 mEditText.getText().toString());
     }
 
+    public void testShiftDoesNotRecapitalizeCurrentWord() {
+        final String WORD_TO_TYPE = "camelCase";
+        type(WORD_TO_TYPE);
+        type(Constants.CODE_SHIFT);
+        assertEquals("shift should leave the current word unchanged", WORD_TO_TYPE,
+                mEditText.getText().toString());
+    }
+
     public void testRecapitalizeThenSpaceDoesNotAutoCorrect() {
         final String WORD_TO_TYPE = "tgis";
         final String EXPECTED_AFTER_RECAP = "Tgis";
         final String EXPECTED_RESULT = "Tgis ";
         type(WORD_TO_TYPE);
-        type(Constants.CODE_SHIFT);
-        assertEquals("shift should recapitalize the word at the cursor",
+        type(Constants.CODE_RECAPITALIZE);
+        assertEquals("hold shift should recapitalize the word at the cursor",
                 EXPECTED_AFTER_RECAP, mEditText.getText().toString());
         type(Constants.CODE_SPACE);
         assertEquals("space should commit the recapitalized word, not a stale auto-correction",
                 EXPECTED_RESULT, mEditText.getText().toString());
     }
 
-    public void testRecapitalizeShiftCyclingThenSpace() {
+    public void testRecapitalizeHoldShiftCyclingThenSpace() {
         final String WORD_TO_TYPE = "tgis";
         type(WORD_TO_TYPE);
-        type(Constants.CODE_SHIFT);
-        assertEquals("first shift should recapitalize the word at the cursor",
+        type(Constants.CODE_RECAPITALIZE);
+        assertEquals("first hold shift should recapitalize the word at the cursor",
                 "Tgis", mEditText.getText().toString());
-        type(Constants.CODE_SHIFT);
-        assertEquals("second shift should cycle the case of the selected recapitalized word",
+        type(Constants.CODE_RECAPITALIZE);
+        assertEquals("second hold shift should cycle the case of the selected recapitalized word",
                 "TGIS", mEditText.getText().toString());
         type(Constants.CODE_SPACE);
         assertEquals("space should commit the cycled recapitalized word",
@@ -246,8 +254,8 @@ public class InputLogicTests extends InputTestsBase {
     public void testRecapitalizeThenPunctuation() {
         final String WORD_TO_TYPE = "tgis";
         type(WORD_TO_TYPE);
-        type(Constants.CODE_SHIFT);
-        assertEquals("shift should recapitalize the word at the cursor",
+        type(Constants.CODE_RECAPITALIZE);
+        assertEquals("hold shift should recapitalize the word at the cursor",
                 "Tgis", mEditText.getText().toString());
         type(Constants.CODE_PERIOD);
         assertEquals("punctuation should commit the recapitalized word",

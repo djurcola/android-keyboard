@@ -1284,6 +1284,14 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             return;
         }
         final int code = key.getCode();
+        if (code == Constants.CODE_SHIFT && mKeyboard != null
+                && mKeyboard.mId.isAlphabetKeyboard()) {
+            cancelKeyTracking();
+            sListener.onReleaseKey(code, false /* withSliding */);
+            sListener.onCodeInput(Constants.CODE_RECAPITALIZE, Constants.NOT_A_COORDINATE,
+                    Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
+            return;
+        }
         if (code == Constants.CODE_SPACE || code == Constants.CODE_LANGUAGE_SWITCH) {
             int spacebarMode = Settings.getInstance().getCurrent().mSpacebarHoldMode;
             if(spacebarMode == Settings.SPACEBAR_MODE_CURSOR) {
