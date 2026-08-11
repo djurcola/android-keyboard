@@ -34,6 +34,7 @@ import org.futo.inputmethod.keyboard.internal.GestureStrokeDrawingPoints;
 import org.futo.inputmethod.keyboard.internal.GestureStrokeRecognitionParams;
 import org.futo.inputmethod.keyboard.internal.KeyboardState;
 import org.futo.inputmethod.keyboard.internal.PointerTrackerQueue;
+import org.futo.inputmethod.keyboard.internal.ShiftSwipeRecapitalizeDetector;
 import org.futo.inputmethod.keyboard.internal.SurfaceSwipeDeleteDetector;
 import org.futo.inputmethod.keyboard.internal.TimerProxy;
 import org.futo.inputmethod.keyboard.internal.TypingTimeRecorder;
@@ -163,6 +164,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private boolean mIsSurfaceSwiping = false;
     private final SurfaceSwipeDeleteDetector mSurfaceSwipeDeleteDetector =
             new SurfaceSwipeDeleteDetector();
+    private final ShiftSwipeRecapitalizeDetector mShiftSwipeRecapitalizeDetector =
+            new ShiftSwipeRecapitalizeDetector();
+    private boolean mShiftSwipeRecapitalized;
 
     // true if keyboard layout has been changed.
     private boolean mKeyboardLayoutHasBeenChanged;
@@ -682,6 +686,11 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             sPointerTrackerQueue.releaseAllPointers(eventTime);
         }
         sPointerTrackerQueue.add(this);
+        if (getActivePointerTrackerCount() > 1) {
+            for (final PointerTracker tracker : sTrackers) {
+                tracker.mShiftSwipeRecapitalizeDetector.cancel();
+            }
+        }
         onDownEventInternal(x, y, eventTime);
 
         if (!sGestureEnabler.shouldHandleGesture()) {
@@ -739,6 +748,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         mIsTrackingForActionDisabled = false;
         mIsSurfaceSwiping = false;
         mSurfaceSwipeDeleteDetector.cancel();
+        mShiftSwipeRecapitalizeDetector.cancel();
+        mShiftSwipeRecapitalized = false;
         resetKeySelectionByDraggingFinger();
         if (key != null) {
             // This onPress call may have changed keyboard layout. Those cases are detected at
@@ -775,6 +786,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             mIsFlickingKey = !mIsSlidingCursor && key.getHasFlick();
             mFlickDirection = key.flickDirection(0, 0);
             mCurrentKey = key;
+
+            if (key.isShift() && mKeyboard != null && mKeyboard.mId.isAlphabetKeyboard()) {
+                mShiftSwipeRecapitalizeDetector.start(x, y, sPointerBigStep);
+            }
 
             if (!mIsSlidingCursor && !mIsFlickingKey && !key.isModifier()) {
                 mIsSurfaceSwiping = true;
@@ -989,6 +1004,21 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         final Key oldKey = mCurrentKey;
 
         final SettingsValues settingsValues = Settings.getInstance().getCurrent();
+
+        if (oldKey != null && oldKey.isShift()
+                && mShiftSwipeRecapitalizeDetector.onMove(x, y,
+                        getActivePointerTrackerCount() == 1)) {
+            sTimerProxy.cancelKeyTimersOf(this);
+            setReleasedKeyGraphics(oldKey, true /* withAnimation */);
+            sListener.onReleaseKey(oldKey.getCode(), false /* withSliding */);
+            sListener.onCodeInput(Constants.CODE_RECAPITALIZE, Constants.NOT_A_COORDINATE,
+                    Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
+            mCurrentKey = null;
+            mShiftSwipeRecapitalized = true;
+            mLastX = x;
+            mLastY = y;
+            return;
+        }
 
         if (!sInGesture && mIsSlidingCursor && oldKey != null && oldKey.getCode() == Constants.CODE_SPACE) {
             boolean allowedBySettings = (mSpacebarLongPressed && settingsValues.mSpacebarHoldMode == Settings.SPACEBAR_MODE_CURSOR)
@@ -1233,6 +1263,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             return;
         }
 
+        if (mShiftSwipeRecapitalized) {
+            mShiftSwipeRecapitalized = false;
+            return;
+        }
         if (mCursorMoved) {
             mCursorMoved = false;
             return;
@@ -1275,16 +1309,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             return;
         }
         final int code = key.getCode();
-        // The alphabetic Shift key has a no-panel auto-more key for Caps Lock. Handle
-        // recapitalization first so its long press is not consumed by that fallback.
-        if (code == Constants.CODE_SHIFT && mKeyboard != null
-                && mKeyboard.mId.isAlphabetKeyboard()) {
-            cancelKeyTracking();
-            sListener.onReleaseKey(code, false /* withSliding */);
-            sListener.onCodeInput(Constants.CODE_RECAPITALIZE, Constants.NOT_A_COORDINATE,
-                    Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
-            return;
-        }
         if (key.getHasNoPanelAutoMoreKey()) {
             cancelKeyTracking();
             final int moreKeyCode = key.getMoreKeys().get(0).mCode;
@@ -1359,6 +1383,8 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         resetKeySelectionByDraggingFinger();
         dismissMoreKeysPanel();
         mSurfaceSwipeDeleteDetector.cancel();
+        mShiftSwipeRecapitalizeDetector.cancel();
+        mShiftSwipeRecapitalized = false;
         mIsSurfaceSwiping = false;
     }
 

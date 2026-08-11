@@ -230,21 +230,21 @@ public class InputLogicTests extends InputTestsBase {
         final String EXPECTED_RESULT = "Tgis ";
         type(WORD_TO_TYPE);
         type(Constants.CODE_RECAPITALIZE);
-        assertEquals("hold shift should recapitalize the word at the cursor",
+        assertEquals("recapitalize action from an upward Shift swipe should recapitalize the word",
                 EXPECTED_AFTER_RECAP, mEditText.getText().toString());
         type(Constants.CODE_SPACE);
         assertEquals("space should commit the recapitalized word, not a stale auto-correction",
                 EXPECTED_RESULT, mEditText.getText().toString());
     }
 
-    public void testRecapitalizeHoldShiftCyclingThenSpace() {
+    public void testRecapitalizeSwipeShiftCyclingThenSpace() {
         final String WORD_TO_TYPE = "tgis";
         type(WORD_TO_TYPE);
         type(Constants.CODE_RECAPITALIZE);
-        assertEquals("first hold shift should recapitalize the word at the cursor",
+        assertEquals("first recapitalize action should recapitalize the word at the cursor",
                 "Tgis", mEditText.getText().toString());
         type(Constants.CODE_RECAPITALIZE);
-        assertEquals("second hold shift should cycle the case of the selected recapitalized word",
+        assertEquals("second recapitalize action should cycle the selected word's case",
                 "TGIS", mEditText.getText().toString());
         type(Constants.CODE_SPACE);
         assertEquals("space should commit the cycled recapitalized word",
@@ -255,7 +255,7 @@ public class InputLogicTests extends InputTestsBase {
         final String WORD_TO_TYPE = "tgis";
         type(WORD_TO_TYPE);
         type(Constants.CODE_RECAPITALIZE);
-        assertEquals("hold shift should recapitalize the word at the cursor",
+        assertEquals("recapitalize action from an upward Shift swipe should recapitalize the word",
                 "Tgis", mEditText.getText().toString());
         type(Constants.CODE_PERIOD);
         assertEquals("punctuation should commit the recapitalized word",
