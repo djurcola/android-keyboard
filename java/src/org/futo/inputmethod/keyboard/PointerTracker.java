@@ -1274,6 +1274,17 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (key == null) {
             return;
         }
+        final int code = key.getCode();
+        // The alphabetic Shift key has a no-panel auto-more key for Caps Lock. Handle
+        // recapitalization first so its long press is not consumed by that fallback.
+        if (code == Constants.CODE_SHIFT && mKeyboard != null
+                && mKeyboard.mId.isAlphabetKeyboard()) {
+            cancelKeyTracking();
+            sListener.onReleaseKey(code, false /* withSliding */);
+            sListener.onCodeInput(Constants.CODE_RECAPITALIZE, Constants.NOT_A_COORDINATE,
+                    Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
+            return;
+        }
         if (key.getHasNoPanelAutoMoreKey()) {
             cancelKeyTracking();
             final int moreKeyCode = key.getMoreKeys().get(0).mCode;
@@ -1281,15 +1292,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             sListener.onCodeInput(moreKeyCode, Constants.NOT_A_COORDINATE,
                     Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
             sListener.onReleaseKey(moreKeyCode, false /* withSliding */);
-            return;
-        }
-        final int code = key.getCode();
-        if (code == Constants.CODE_SHIFT && mKeyboard != null
-                && mKeyboard.mId.isAlphabetKeyboard()) {
-            cancelKeyTracking();
-            sListener.onReleaseKey(code, false /* withSliding */);
-            sListener.onCodeInput(Constants.CODE_RECAPITALIZE, Constants.NOT_A_COORDINATE,
-                    Constants.NOT_A_COORDINATE, false /* isKeyRepeat */);
             return;
         }
         if (code == Constants.CODE_SPACE || code == Constants.CODE_LANGUAGE_SWITCH) {
