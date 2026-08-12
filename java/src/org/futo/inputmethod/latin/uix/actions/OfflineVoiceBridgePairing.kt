@@ -31,28 +31,25 @@ object OfflineVoiceBridgePairing {
         value != null && capabilityPattern.matches(value)
 
     /**
-     * Activity result launches do not reliably populate callingPackage on all Android builds.
-     * OVI also supplies its package as the platform-standard android-app referrer so the
-     * endpoint can recognize that launch form. The unguessable capability remains required.
+     * Android does not consistently preserve activity caller metadata for this cross-app
+     * result hand-off. The random capability is instead the pairing authority: a caller
+     * that did not obtain it from OVI cannot later use OVI's Binder endpoint. Referrer is
+     * optional because Samsung may strip it before delivery.
      */
-    internal fun isExpectedPairingIntent(activity: Activity, intent: Intent?): Boolean = try {
+    internal fun isExpectedPairingIntent(intent: Intent?): Boolean = try {
         if (intent == null || intent.action != PAIR_ACTION ||
-            !isExpectedCaller(activity) ||
             !intent.categories.isNullOrEmpty() || intent.data != null || intent.clipData != null ||
             intent.type != null
         ) false else {
             val extras = intent.extras
-            extras != null && extras.keySet() == setOf(EXTRA_CAPABILITY, Intent.EXTRA_REFERRER) &&
+            extras != null && extras.keySet().all {
+                it == EXTRA_CAPABILITY || it == Intent.EXTRA_REFERRER
+            } &&
                 isValidCapability(intent.getStringExtra(EXTRA_CAPABILITY))
         }
     } catch (_: Throwable) {
         false
     }
-
-    private fun isExpectedCaller(activity: Activity): Boolean =
-        activity.callingPackage == OVI_PACKAGE ||
-            activity.callingActivity?.packageName == OVI_PACKAGE ||
-            activity.referrer?.toString() == "android-app://$OVI_PACKAGE"
 
     internal fun approve(context: Context, capability: String) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -66,7 +63,7 @@ class OfflineVoiceBridgePairingActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!OfflineVoiceBridgePairing.isExpectedPairingIntent(this, intent)) {
+        if (!OfflineVoiceBridgePairing.isExpectedPairingIntent(intent)) {
             setResult(Activity.RESULT_CANCELED)
             finish()
             return
