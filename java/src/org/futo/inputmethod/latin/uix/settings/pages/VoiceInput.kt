@@ -1,6 +1,11 @@
 package org.futo.inputmethod.latin.uix.settings.pages
 
+import android.widget.Toast
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import org.futo.inputmethod.latin.R
@@ -99,6 +104,42 @@ val VoiceInputMenu = UserSettingsMenu(
             navigateTo = "languages"
         ).copy(visibilityCheck = visibilityCheckNotSystemVoiceInput),
 
+        UserSetting(
+            name = R.string.offline_voice_bridge_pair,
+            component = {
+                val context = LocalContext.current
+                val showConsent = remember { mutableStateOf(false) }
+                NavigationItem(
+                    title = stringResource(R.string.offline_voice_bridge_pair),
+                    subtitle = stringResource(R.string.offline_voice_bridge_pair_subtitle),
+                    style = NavigationItemStyle.Misc,
+                    navigate = { showConsent.value = true }
+                )
+                if (showConsent.value) {
+                    AlertDialog(
+                        title = { Text(stringResource(R.string.offline_voice_bridge_pairing_title)) },
+                        text = { Text(stringResource(R.string.offline_voice_bridge_pairing_message)) },
+                        onDismissRequest = { showConsent.value = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showConsent.value = false
+                                OfflineVoiceBridgePairing.requestPairing(context) { success ->
+                                    Toast.makeText(context,
+                                        if (success) R.string.offline_voice_bridge_pair_success
+                                        else R.string.offline_voice_bridge_pair_failed,
+                                        Toast.LENGTH_LONG).show()
+                                }
+                            }) { Text(stringResource(R.string.offline_voice_bridge_pairing_allow)) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showConsent.value = false }) {
+                                Text(stringResource(android.R.string.cancel))
+                            }
+                        }
+                    )
+                }
+            }
+        ),
         UserSetting(
             name = R.string.offline_voice_bridge_revoke,
             component = {

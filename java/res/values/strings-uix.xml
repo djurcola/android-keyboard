@@ -80,6 +80,10 @@
     <string name="offline_voice_bridge_pairing_title">Allow Offline Voice Input?</string>
     <string name="offline_voice_bridge_pairing_message">Allow Offline Voice Input to provide offline transcription to FUTO Keyboard? It can receive audio only while you use Voice Input. You can revoke this permission in Voice Input settings.</string>
     <string name="offline_voice_bridge_pairing_allow">Allow</string>
+    <string name="offline_voice_bridge_pair">Pair Offline Voice Input</string>
+    <string name="offline_voice_bridge_pair_subtitle">Allow FUTO Keyboard to use Offline Voice Input for dictation</string>
+    <string name="offline_voice_bridge_pair_success">Offline Voice Input paired. Use FUTO Keyboard’s microphone to dictate.</string>
+    <string name="offline_voice_bridge_pair_failed">Could not pair with Offline Voice Input. Confirm it is installed, then try again.</string>
     <string name="offline_voice_bridge_revoke">Revoke Offline Voice Input access</string>
     <string name="action_voice_input_no_model_for_language_x_installed">No voice input model installed for <xliff:g name="language" example="español">%s</xliff:g>, tap to check options?</string>
     <string name="action_voice_input_open_settings_button_to_grant_microphone_permission">Please go to Permissions, and enable Microphone permission to use voice input</string>

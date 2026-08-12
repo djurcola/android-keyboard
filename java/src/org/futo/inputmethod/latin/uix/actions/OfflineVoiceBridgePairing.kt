@@ -4,8 +4,12 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.content.ComponentName
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import androidx.activity.ComponentActivity
+import dev.notune.transcribe.IOfflineVoiceBridge
 import org.futo.inputmethod.latin.R
 
 /** Private client-side record for the authenticated Offline Voice Input bridge. */
@@ -54,6 +58,46 @@ object OfflineVoiceBridgePairing {
     internal fun approve(context: Context, capability: String) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(CAPABILITY, capability).apply()
+    }
+
+    /** Pairs via the explicit OVI Binder service, avoiding cross-app activity-result quirks. */
+    fun requestPairing(context: Context, completed: (Boolean) -> Unit) {
+        var bound = false
+        var finished = false
+        lateinit var connection: ServiceConnection
+        fun finish(success: Boolean) {
+            if (finished) return
+            finished = true
+            if (bound) {
+                try { context.unbindService(connection) } catch (_: Throwable) { }
+            }
+            completed(success)
+        }
+        connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                try {
+                    val capability = IOfflineVoiceBridge.Stub.asInterface(service).pair()
+                    if (isValidCapability(capability)) {
+                        approve(context, capability)
+                        finish(true)
+                    } else finish(false)
+                } catch (_: Throwable) {
+                    finish(false)
+                }
+            }
+
+            override fun onServiceDisconnected(name: ComponentName) = finish(false)
+            override fun onBindingDied(name: ComponentName) = finish(false)
+            override fun onNullBinding(name: ComponentName) = finish(false)
+        }
+        try {
+            bound = context.bindService(Intent().setComponent(ComponentName(
+                OVI_PACKAGE, "$OVI_PACKAGE.OfflineVoiceBridgeService"
+            )), connection, Context.BIND_AUTO_CREATE)
+            if (!bound) finish(false)
+        } catch (_: Throwable) {
+            finish(false)
+        }
     }
 }
 
