@@ -2,6 +2,7 @@ package org.futo.inputmethod.latin.uix.actions
 
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -106,6 +107,13 @@ private class SystemVoiceInputPersistentState(
     ) != null
 
     private fun start() {
+        if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            feedback(R.string.action_system_voice_input_futo_microphone_permission)
+            return
+        }
+
         if (!isOfflineServiceAvailable()) {
             feedback(R.string.action_system_voice_input_offline_unavailable)
             manager.triggerSystemVoiceInput()
@@ -165,7 +173,7 @@ private class SystemVoiceInputPersistentState(
         }
 
         override fun onError(error: Int) {
-            onMain { fail(id) }
+            onMain { fail(id, recognitionErrorMessage(error)) }
         }
 
         override fun onResults(results: Bundle?) {
@@ -205,13 +213,26 @@ private class SystemVoiceInputPersistentState(
         }
     }
 
-    private fun fail(id: Int) {
+    private fun fail(id: Int, message: Int = R.string.action_system_voice_input_failed) {
         if (id != sessionId) return
         inputTransaction?.cancel()
         inputTransaction = null
         releaseRecognizer()
         state = State.Idle
-        feedback(R.string.action_system_voice_input_failed)
+        feedback(message)
+    }
+
+    private fun recognitionErrorMessage(error: Int): Int = when (error) {
+        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
+            R.string.action_system_voice_input_offline_microphone_permission
+        SpeechRecognizer.ERROR_AUDIO -> R.string.action_system_voice_input_error_audio
+        SpeechRecognizer.ERROR_CLIENT -> R.string.action_system_voice_input_error_client
+        SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+            R.string.action_system_voice_input_error_no_speech
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> R.string.action_system_voice_input_error_busy
+        SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
+        SpeechRecognizer.ERROR_SERVER -> R.string.action_system_voice_input_error_service
+        else -> R.string.action_system_voice_input_failed
     }
 
     private fun releaseRecognizer() {
