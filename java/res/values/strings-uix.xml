@@ -64,6 +64,12 @@
     <string name="action_voice_input_title">Voice Input</string>
     <!-- Same as the one above but it uses the device's default system voice input instead of the built-in -->
     <string name="action_system_voice_input_title">Voice Input (System)</string>
+    <string name="action_system_voice_input_starting">Starting Offline Voice Input</string>
+    <string name="action_system_voice_input_listening">Offline Voice Input is listening</string>
+    <string name="action_system_voice_input_processing">Offline Voice Input is processing</string>
+    <string name="action_system_voice_input_completed">Offline Voice Input completed</string>
+    <string name="action_system_voice_input_failed">Offline Voice Input failed</string>
+    <string name="action_system_voice_input_offline_unavailable">Offline Voice Input is unavailable; opening system voice input</string>
     <string name="action_voice_input_no_model_for_language_x_installed">No voice input model installed for <xliff:g name="language" example="español">%s</xliff:g>, tap to check options?</string>
     <string name="action_voice_input_open_settings_button_to_grant_microphone_permission">Please go to Permissions, and enable Microphone permission to use voice input</string>
 
