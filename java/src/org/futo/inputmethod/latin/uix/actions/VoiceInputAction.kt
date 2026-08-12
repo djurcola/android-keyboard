@@ -187,25 +187,31 @@ private class SystemVoiceInputPersistentState(
             if (id == sessionId && state != State.Idle) block()
         }
 
-        override fun onState(bridgeState: Int) = onMain {
-            when (bridgeState) {
-                BRIDGE_STATE_LISTENING -> {
-                    state = State.Listening
-                    feedback(R.string.action_system_voice_input_listening)
-                }
-                BRIDGE_STATE_PROCESSING -> {
-                    state = State.Processing
-                    feedback(R.string.action_system_voice_input_processing)
+        override fun onState(bridgeState: Int) {
+            onMain {
+                when (bridgeState) {
+                    BRIDGE_STATE_LISTENING -> {
+                        state = State.Listening
+                        feedback(R.string.action_system_voice_input_listening)
+                    }
+                    BRIDGE_STATE_PROCESSING -> {
+                        state = State.Processing
+                        feedback(R.string.action_system_voice_input_processing)
+                    }
                 }
             }
         }
 
-        override fun onResult(text: String?) = onMain {
-            if (text.isNullOrBlank()) fail(id) else commit(id, text)
+        override fun onResult(text: String?) {
+            onMain {
+                if (text.isNullOrBlank()) fail(id) else commit(id, text)
+            }
         }
 
-        override fun onError(code: Int, userMessage: String?) = onMain {
-            fail(id, message = userMessage?.takeIf { it.isNotBlank() })
+        override fun onError(code: Int, userMessage: String?) {
+            onMain {
+                fail(id, message = userMessage?.takeIf { it.isNotBlank() })
+            }
         }
     }
 
