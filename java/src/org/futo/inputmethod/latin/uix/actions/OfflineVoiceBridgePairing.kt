@@ -30,20 +30,29 @@ object OfflineVoiceBridgePairing {
     internal fun isValidCapability(value: String?): Boolean =
         value != null && capabilityPattern.matches(value)
 
+    /**
+     * Activity result launches do not reliably populate callingPackage on all Android builds.
+     * OVI also supplies its package as the platform-standard android-app referrer so the
+     * endpoint can recognize that launch form. The unguessable capability remains required.
+     */
     internal fun isExpectedPairingIntent(activity: Activity, intent: Intent?): Boolean = try {
         if (intent == null || intent.action != PAIR_ACTION ||
-            activity.callingPackage != OVI_PACKAGE ||
-            activity.callingActivity?.packageName != OVI_PACKAGE ||
+            !isExpectedCaller(activity) ||
             !intent.categories.isNullOrEmpty() || intent.data != null || intent.clipData != null ||
             intent.type != null
         ) false else {
             val extras = intent.extras
-            extras != null && extras.keySet() == setOf(EXTRA_CAPABILITY) &&
+            extras != null && extras.keySet() == setOf(EXTRA_CAPABILITY, Intent.EXTRA_REFERRER) &&
                 isValidCapability(intent.getStringExtra(EXTRA_CAPABILITY))
         }
     } catch (_: Throwable) {
         false
     }
+
+    private fun isExpectedCaller(activity: Activity): Boolean =
+        activity.callingPackage == OVI_PACKAGE ||
+            activity.callingActivity?.packageName == OVI_PACKAGE ||
+            activity.referrer?.toString() == "android-app://$OVI_PACKAGE"
 
     internal fun approve(context: Context, capability: String) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
