@@ -1,15 +1,12 @@
 package org.futo.inputmethod.latin.uix.actions
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Bundle
+import android.content.ServiceConnection
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
-import android.speech.RecognitionListener
-import android.speech.RecognitionService
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -34,6 +31,8 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
+import dev.notune.transcribe.IOfflineVoiceBridge
+import dev.notune.transcribe.IOfflineVoiceBridgeCallback
 import org.futo.inputmethod.latin.R
 import org.futo.inputmethod.latin.uix.ANIMATE_BUBBLE
 import org.futo.inputmethod.latin.uix.AUDIO_FOCUS
@@ -71,9 +70,9 @@ import org.futo.voiceinput.shared.whisper.ModelManager
 import org.futo.voiceinput.shared.whisper.MultiModelRunConfiguration
 import java.util.Locale
 
-private const val OFFLINE_VOICE_PACKAGE = "dev.notune.transcribe"
-private val OfflineVoiceRecognitionService = ComponentName(
-    OFFLINE_VOICE_PACKAGE, "$OFFLINE_VOICE_PACKAGE.VoiceRecognitionService"
+private val OfflineVoiceBridgeService = ComponentName(
+    OfflineVoiceBridgePairing.OVI_PACKAGE,
+    "${OfflineVoiceBridgePairing.OVI_PACKAGE}.OfflineVoiceBridgeService"
 )
 
 private class SystemVoiceInputPersistentState(
@@ -84,164 +83,200 @@ private class SystemVoiceInputPersistentState(
     private val context = manager.getContext()
     private val mainHandler = Handler(Looper.getMainLooper())
     private var state = State.Idle
-    private var recognizer: SpeechRecognizer? = null
+    private var bridge: IOfflineVoiceBridge? = null
+    private var bound = false
+    private var bridgeSessionStarted = false
+    private var stopRequested = false
     private var inputTransaction: org.futo.inputmethod.latin.uix.ActionInputTransaction? = null
     private var sessionId = 0
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            try {
+                bridge = IOfflineVoiceBridge.Stub.asInterface(service)
+                service.linkToDeath(bridgeDied, 0)
+                onBridgeConnected(sessionId)
+            } catch (_: Throwable) {
+                unavailable(sessionId)
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) = onBridgeDied()
+        override fun onBindingDied(name: ComponentName) = onBridgeDied()
+        override fun onNullBinding(name: ComponentName) = unavailable(sessionId)
+    }
+
+    private val bridgeDied = IBinder.DeathRecipient { mainHandler.post { onBridgeDied() } }
 
     fun toggle() {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post { toggle() }
             return
         }
-
         when (state) {
             State.Idle -> start()
-            State.Stopping -> feedback(R.string.action_system_voice_input_processing)
-            else -> stop()
+            State.Processing, State.Stopping -> feedback(R.string.action_system_voice_input_processing)
+            State.Starting, State.Listening -> stop()
         }
     }
 
-    private fun isOfflineServiceAvailable(): Boolean = context.packageManager.resolveService(
-        Intent(RecognitionService.SERVICE_INTERFACE).setComponent(OfflineVoiceRecognitionService),
-        0
-    ) != null
-
     private fun start() {
-        if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            feedback(R.string.action_system_voice_input_futo_microphone_permission)
-            return
-        }
-
-        if (!isOfflineServiceAvailable()) {
-            feedback(R.string.action_system_voice_input_offline_unavailable)
+        val capability = OfflineVoiceBridgePairing.capability(context)
+        if (capability == null) {
+            // There is no pairing to authorize, so retain the normal system voice-input route.
             manager.triggerSystemVoiceInput()
             return
         }
-
         val id = ++sessionId
         state = State.Starting
+        stopRequested = false
         feedback(R.string.action_system_voice_input_starting)
         try {
-            inputTransaction = manager.createInputTransaction()
-            val createdRecognizer = SpeechRecognizer.createSpeechRecognizer(
-                context, OfflineVoiceRecognitionService
+            bound = context.bindService(
+                Intent().setComponent(OfflineVoiceBridgeService),
+                connection,
+                // Pass the visible IME's while-in-use microphone capability to OVI.
+                // Required by Android 11+ for a bound background app to use it.
+                Context.BIND_AUTO_CREATE or Context.BIND_INCLUDE_CAPABILITIES
             )
-            recognizer = createdRecognizer
-            createdRecognizer.setRecognitionListener(listenerFor(id))
-            createdRecognizer.startListening(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH))
+            if (!bound) unavailable(id)
         } catch (_: Throwable) {
-            fail(id)
+            unavailable(id)
+        }
+    }
+
+    private fun onBridgeConnected(id: Int) {
+        if (id != sessionId || state == State.Idle) return
+        val service = bridge ?: run { unavailable(id); return }
+        val capability = OfflineVoiceBridgePairing.capability(context) ?: run {
+            fail(id); return
+        }
+        try {
+            // Authorization failures deliberately do not fall back to SpeechRecognizer.
+            if (!service.isPaired(capability)) {
+                fail(id, R.string.action_system_voice_input_failed)
+                return
+            }
+            inputTransaction = manager.createInputTransaction()
+            service.start(capability, callbackFor(id))
+            bridgeSessionStarted = true
+            if (stopRequested) stop()
+        } catch (_: Throwable) {
+            fail(id, R.string.action_system_voice_input_failed)
         }
     }
 
     private fun stop() {
-        val activeRecognizer = recognizer ?: return
+        stopRequested = true
         state = State.Stopping
         feedback(R.string.action_system_voice_input_processing)
+        if (!bridgeSessionStarted) return
         try {
-            activeRecognizer.stopListening()
+            val capability = OfflineVoiceBridgePairing.capability(context) ?: run {
+                fail(sessionId)
+                return
+            }
+            bridge?.stop(capability)
         } catch (_: Throwable) {
             fail(sessionId)
         }
     }
 
-    private fun listenerFor(id: Int) = object : RecognitionListener {
+    private fun callbackFor(id: Int) = object : IOfflineVoiceBridgeCallback.Stub() {
         private fun onMain(block: () -> Unit) = mainHandler.post {
             if (id == sessionId && state != State.Idle) block()
         }
 
-        override fun onReadyForSpeech(params: Bundle?) {
-            onMain {
-                if (state == State.Starting) {
+        override fun onState(bridgeState: Int) = onMain {
+            when (bridgeState) {
+                BRIDGE_STATE_LISTENING -> {
                     state = State.Listening
                     feedback(R.string.action_system_voice_input_listening)
                 }
-            }
-        }
-
-        override fun onBeginningOfSpeech() = Unit
-        override fun onRmsChanged(rmsdB: Float) = Unit
-        override fun onBufferReceived(buffer: ByteArray?) = Unit
-
-        override fun onEndOfSpeech() {
-            onMain {
-                state = State.Processing
-                feedback(R.string.action_system_voice_input_processing)
-            }
-        }
-
-        override fun onError(error: Int) {
-            onMain { fail(id, recognitionErrorMessage(error)) }
-        }
-
-        override fun onResults(results: Bundle?) {
-            onMain {
-                val text = results
-                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    ?.firstOrNull { it.isNotBlank() }
-                if (text == null) {
-                    fail(id)
-                } else {
-                    commit(id, text)
+                BRIDGE_STATE_PROCESSING -> {
+                    state = State.Processing
+                    feedback(R.string.action_system_voice_input_processing)
                 }
             }
         }
 
-        override fun onPartialResults(partialResults: Bundle?) = Unit
-        override fun onEvent(eventType: Int, params: Bundle?) = Unit
+        override fun onResult(text: String?) = onMain {
+            if (text.isNullOrBlank()) fail(id) else commit(id, text)
+        }
+
+        override fun onError(code: Int, userMessage: String?) = onMain {
+            fail(id, message = userMessage?.takeIf { it.isNotBlank() })
+        }
     }
 
     private fun commit(id: Int, text: String) {
         if (id != sessionId) return
         val transaction = inputTransaction
         inputTransaction = null
-        var committed = false
         try {
             if (transaction == null) throw IllegalStateException("Missing voice input transaction")
             transaction.commit(ModelOutputSanitizer.sanitize(text, transaction.textContext))
-            committed = true
-            releaseRecognizer()
+            finishBinding(cancelBridge = false)
             state = State.Idle
             feedback(R.string.action_system_voice_input_completed)
         } catch (_: Throwable) {
-            if (!committed) transaction?.cancel()
-            releaseRecognizer()
+            transaction?.cancel()
+            finishBinding(cancelBridge = true)
             state = State.Idle
             feedback(R.string.action_system_voice_input_failed)
         }
+    }
+
+    private fun unavailable(id: Int) {
+        if (id != sessionId || bridgeSessionStarted) return
+        finishBinding(cancelBridge = false)
+        state = State.Idle
+        feedback(R.string.action_system_voice_input_offline_unavailable)
+        manager.triggerSystemVoiceInput()
     }
 
     private fun fail(id: Int, message: Int = R.string.action_system_voice_input_failed) {
         if (id != sessionId) return
         inputTransaction?.cancel()
         inputTransaction = null
-        releaseRecognizer()
+        finishBinding(cancelBridge = bridgeSessionStarted)
         state = State.Idle
         feedback(message)
     }
 
-    private fun recognitionErrorMessage(error: Int): Int = when (error) {
-        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
-            R.string.action_system_voice_input_offline_microphone_permission
-        SpeechRecognizer.ERROR_AUDIO -> R.string.action_system_voice_input_error_audio
-        SpeechRecognizer.ERROR_CLIENT -> R.string.action_system_voice_input_error_client
-        SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
-            R.string.action_system_voice_input_error_no_speech
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> R.string.action_system_voice_input_error_busy
-        SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
-        SpeechRecognizer.ERROR_SERVER -> R.string.action_system_voice_input_error_service
-        else -> R.string.action_system_voice_input_failed
+    private fun fail(id: Int, message: String?) {
+        if (id != sessionId) return
+        inputTransaction?.cancel()
+        inputTransaction = null
+        finishBinding(cancelBridge = bridgeSessionStarted)
+        state = State.Idle
+        if (message == null) feedback(R.string.action_system_voice_input_failed) else feedback(message)
     }
 
-    private fun releaseRecognizer() {
-        val activeRecognizer = recognizer ?: return
-        recognizer = null
-        try {
-            activeRecognizer.destroy()
-        } catch (_: Throwable) {
-            // The service may already have disconnected; it still must not be destroyed twice.
+    private fun onBridgeDied() {
+        if (state == State.Idle) return
+        inputTransaction?.cancel()
+        inputTransaction = null
+        finishBinding(cancelBridge = false)
+        state = State.Idle
+        feedback(R.string.action_system_voice_input_failed)
+    }
+
+    private fun finishBinding(cancelBridge: Boolean) {
+        val service = bridge
+        val capability = OfflineVoiceBridgePairing.capability(context)
+        if (cancelBridge && bridgeSessionStarted && service != null && capability != null) {
+            try { service.cancel(capability) } catch (_: Throwable) { }
+        }
+        service?.asBinder()?.let {
+            try { it.unlinkToDeath(bridgeDied, 0) } catch (_: Throwable) { }
+        }
+        bridge = null
+        bridgeSessionStarted = false
+        stopRequested = false
+        if (bound) {
+            try { context.unbindService(connection) } catch (_: Throwable) { }
+            bound = false
         }
     }
 
@@ -250,25 +285,25 @@ private class SystemVoiceInputPersistentState(
             mainHandler.post { tearDown() }
             return
         }
-        ++sessionId // Ignore callbacks from the recognizer being released.
+        ++sessionId
         inputTransaction?.cancel()
         inputTransaction = null
+        finishBinding(cancelBridge = bridgeSessionStarted)
         state = State.Idle
-        recognizer?.let {
-            try { it.cancel() } catch (_: Throwable) { }
-        }
-        releaseRecognizer()
     }
 
-    private fun feedback(message: Int) {
-        val text = context.getString(message)
-        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-        manager.announce(text)
+    private fun feedback(message: Int) = feedback(context.getString(message))
+    private fun feedback(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        manager.announce(message)
     }
 
     override suspend fun cleanUp() = tearDown()
     override fun close() = tearDown()
 }
+
+private const val BRIDGE_STATE_LISTENING = 2
+private const val BRIDGE_STATE_PROCESSING = 3
 
 val SystemVoiceInputAction = Action(
     icon = R.drawable.mic_fill,
@@ -280,7 +315,6 @@ val SystemVoiceInputAction = Action(
     windowImpl = null,
     shownInEditor = false
 )
-
 
 @Composable
 fun NoModelInstalled(locale: Locale) {

@@ -335,6 +335,7 @@ android {
                     'java/res-large'
             ]
             java.srcDirs = ['common/src', 'java/src']
+            aidl.srcDirs = ['java/aidl']
             manifest.srcFile 'java/AndroidManifest.xml'
             assets.srcDirs = ['java/assets']
         }

@@ -77,6 +77,10 @@
     <string name="action_system_voice_input_error_busy">Offline Voice Input is already busy</string>
     <string name="action_system_voice_input_error_service">Offline Voice Input service or model failed</string>
     <string name="action_system_voice_input_offline_unavailable">Offline Voice Input is unavailable; opening system voice input</string>
+    <string name="offline_voice_bridge_pairing_title">Allow Offline Voice Input?</string>
+    <string name="offline_voice_bridge_pairing_message">Allow Offline Voice Input to provide offline transcription to FUTO Keyboard? It can receive audio only while you use Voice Input. You can revoke this permission in Voice Input settings.</string>
+    <string name="offline_voice_bridge_pairing_allow">Allow</string>
+    <string name="offline_voice_bridge_revoke">Revoke Offline Voice Input access</string>
     <string name="action_voice_input_no_model_for_language_x_installed">No voice input model installed for <xliff:g name="language" example="español">%s</xliff:g>, tap to check options?</string>
     <string name="action_voice_input_open_settings_button_to_grant_microphone_permission">Please go to Permissions, and enable Microphone permission to use voice input</string>
 

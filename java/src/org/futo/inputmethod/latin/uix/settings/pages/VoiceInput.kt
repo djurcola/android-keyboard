@@ -1,8 +1,10 @@
 package org.futo.inputmethod.latin.uix.settings.pages
 
-import android.content.Intent
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import org.futo.inputmethod.latin.R
+import org.futo.inputmethod.latin.uix.actions.OfflineVoiceBridgePairing
 import org.futo.inputmethod.latin.uix.ANIMATE_BUBBLE
 import org.futo.inputmethod.latin.uix.AUDIO_FOCUS
 import org.futo.inputmethod.latin.uix.CAN_EXPAND_SPACE
@@ -12,8 +14,9 @@ import org.futo.inputmethod.latin.uix.PREFER_BLUETOOTH
 import org.futo.inputmethod.latin.uix.USE_PERSONAL_DICT
 import org.futo.inputmethod.latin.uix.USE_SYSTEM_VOICE_INPUT
 import org.futo.inputmethod.latin.uix.USE_VAD_AUTOSTOP
-import org.futo.inputmethod.latin.uix.VERBOSE_PROGRESS
+import org.futo.inputmethod.latin.uix.settings.NavigationItem
 import org.futo.inputmethod.latin.uix.settings.NavigationItemStyle
+import org.futo.inputmethod.latin.uix.settings.UserSetting
 import org.futo.inputmethod.latin.uix.settings.UserSettingsMenu
 import org.futo.inputmethod.latin.uix.settings.useDataStoreValue
 import org.futo.inputmethod.latin.uix.settings.userSettingNavigationItem
@@ -95,6 +98,18 @@ val VoiceInputMenu = UserSettingsMenu(
             style = NavigationItemStyle.Misc,
             navigateTo = "languages"
         ).copy(visibilityCheck = visibilityCheckNotSystemVoiceInput),
+
+        UserSetting(
+            name = R.string.offline_voice_bridge_revoke,
+            component = {
+                val context = LocalContext.current
+                NavigationItem(
+                    title = stringResource(R.string.offline_voice_bridge_revoke),
+                    style = NavigationItemStyle.Misc,
+                    navigate = { OfflineVoiceBridgePairing.revoke(context) }
+                )
+            }
+        ),
         //}
     )
 )
