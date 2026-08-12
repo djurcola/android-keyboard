@@ -144,10 +144,12 @@ private class SystemVoiceInputPersistentState(
             if (id == sessionId && state != State.Idle) block()
         }
 
-        override fun onReadyForSpeech(params: Bundle?) = onMain {
-            if (state == State.Starting) {
-                state = State.Listening
-                feedback(R.string.action_system_voice_input_listening)
+        override fun onReadyForSpeech(params: Bundle?) {
+            onMain {
+                if (state == State.Starting) {
+                    state = State.Listening
+                    feedback(R.string.action_system_voice_input_listening)
+                }
             }
         }
 
@@ -155,21 +157,27 @@ private class SystemVoiceInputPersistentState(
         override fun onRmsChanged(rmsdB: Float) = Unit
         override fun onBufferReceived(buffer: ByteArray?) = Unit
 
-        override fun onEndOfSpeech() = onMain {
-            state = State.Processing
-            feedback(R.string.action_system_voice_input_processing)
+        override fun onEndOfSpeech() {
+            onMain {
+                state = State.Processing
+                feedback(R.string.action_system_voice_input_processing)
+            }
         }
 
-        override fun onError(error: Int) = onMain { fail(id) }
+        override fun onError(error: Int) {
+            onMain { fail(id) }
+        }
 
-        override fun onResults(results: Bundle?) = onMain {
-            val text = results
-                ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                ?.firstOrNull { it.isNotBlank() }
-            if (text == null) {
-                fail(id)
-            } else {
-                commit(id, text)
+        override fun onResults(results: Bundle?) {
+            onMain {
+                val text = results
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull { it.isNotBlank() }
+                if (text == null) {
+                    fail(id)
+                } else {
+                    commit(id, text)
+                }
             }
         }
 
