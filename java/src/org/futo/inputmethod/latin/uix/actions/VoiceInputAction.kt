@@ -89,6 +89,12 @@ private class SystemVoiceInputPersistentState(
     private var stopRequested = false
     private var inputTransaction: org.futo.inputmethod.latin.uix.ActionInputTransaction? = null
     private var sessionId = 0
+    private var foregroundPoll: Runnable? = null
+
+    private companion object {
+        const val FOREGROUND_READY_POLL_MS = 50L
+        const val FOREGROUND_READY_TIMEOUT_MS = 2_500L
+    }
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
@@ -157,13 +163,43 @@ private class SystemVoiceInputPersistentState(
                 fail(id, R.string.action_system_voice_input_failed)
                 return
             }
-            inputTransaction = manager.createInputTransaction()
-            service.start(capability, callbackFor(id))
-            bridgeSessionStarted = true
-            if (stopRequested) stop()
+            // Sending this OVI-created one-shot PendingIntent while the IME is visible
+            // transfers its while-in-use microphone eligibility before capture begins.
+            service.requestForegroundStart(capability).send()
+            waitForForegroundReady(id, service, capability)
         } catch (_: Throwable) {
             fail(id, R.string.action_system_voice_input_failed)
         }
+    }
+
+    private fun waitForForegroundReady(id: Int, service: IOfflineVoiceBridge, capability: String) {
+        val deadline = android.os.SystemClock.uptimeMillis() + FOREGROUND_READY_TIMEOUT_MS
+        fun poll() {
+            if (id != sessionId || state == State.Idle) return
+            try {
+                if (service.isForegroundReady(capability)) {
+                    foregroundPoll = null
+                    inputTransaction = manager.createInputTransaction()
+                    service.start(capability, callbackFor(id))
+                    bridgeSessionStarted = true
+                    if (stopRequested) stop()
+                    return
+                }
+            } catch (_: Throwable) {
+                foregroundPoll = null
+                fail(id, R.string.action_system_voice_input_failed)
+                return
+            }
+            if (android.os.SystemClock.uptimeMillis() >= deadline) {
+                foregroundPoll = null
+                fail(id, R.string.action_system_voice_input_failed)
+                return
+            }
+            foregroundPoll = Runnable { poll() }.also {
+                mainHandler.postDelayed(it, FOREGROUND_READY_POLL_MS)
+            }
+        }
+        poll()
     }
 
     private fun stop() {
@@ -269,6 +305,8 @@ private class SystemVoiceInputPersistentState(
     }
 
     private fun finishBinding(cancelBridge: Boolean) {
+        foregroundPoll?.let(mainHandler::removeCallbacks)
+        foregroundPoll = null
         val service = bridge
         val capability = OfflineVoiceBridgePairing.capability(context)
         if (cancelBridge && bridgeSessionStarted && service != null && capability != null) {
