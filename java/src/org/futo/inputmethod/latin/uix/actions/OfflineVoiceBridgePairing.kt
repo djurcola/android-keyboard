@@ -8,12 +8,14 @@ import android.content.ComponentName
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import androidx.activity.ComponentActivity
 import dev.notune.transcribe.IOfflineVoiceBridge
 import org.futo.inputmethod.latin.R
 
 /** Private client-side record for the authenticated Offline Voice Input bridge. */
 object OfflineVoiceBridgePairing {
+    private const val TAG = "OfflineVoiceBridge"
     const val OVI_PACKAGE = "dev.notune.transcribe"
     const val PAIR_ACTION = "org.futo.inputmethod.latin.action.PAIR_OFFLINE_VOICE_BRIDGE"
     const val EXTRA_CAPABILITY = "dev.notune.transcribe.extra.PAIRING_CAPABILITY"
@@ -78,24 +80,42 @@ object OfflineVoiceBridgePairing {
                 try {
                     val capability = IOfflineVoiceBridge.Stub.asInterface(service).pair()
                     if (isValidCapability(capability)) {
+                        Log.i(TAG, "Pairing capability received")
                         approve(context, capability)
                         finish(true)
-                    } else finish(false)
-                } catch (_: Throwable) {
+                    } else {
+                        Log.w(TAG, "Pairing returned an invalid capability")
+                        finish(false)
+                    }
+                } catch (error: Throwable) {
+                    Log.w(TAG, "Pairing Binder call failed: ${error.javaClass.simpleName}")
                     finish(false)
                 }
             }
 
-            override fun onServiceDisconnected(name: ComponentName) = finish(false)
-            override fun onBindingDied(name: ComponentName) = finish(false)
-            override fun onNullBinding(name: ComponentName) = finish(false)
+            override fun onServiceDisconnected(name: ComponentName) {
+                Log.w(TAG, "Pairing service disconnected")
+                finish(false)
+            }
+            override fun onBindingDied(name: ComponentName) {
+                Log.w(TAG, "Pairing service binding died")
+                finish(false)
+            }
+            override fun onNullBinding(name: ComponentName) {
+                Log.w(TAG, "Pairing service returned a null binding")
+                finish(false)
+            }
         }
         try {
             bound = context.bindService(Intent().setComponent(ComponentName(
                 OVI_PACKAGE, "$OVI_PACKAGE.OfflineVoiceBridgeService"
             )), connection, Context.BIND_AUTO_CREATE)
-            if (!bound) finish(false)
-        } catch (_: Throwable) {
+            if (!bound) {
+                Log.w(TAG, "Pairing bindService returned false")
+                finish(false)
+            }
+        } catch (error: Throwable) {
+            Log.w(TAG, "Pairing bindService failed: ${error.javaClass.simpleName}")
             finish(false)
         }
     }

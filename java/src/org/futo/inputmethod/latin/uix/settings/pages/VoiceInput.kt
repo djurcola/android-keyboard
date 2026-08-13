@@ -42,6 +42,48 @@ val VoiceInputMenu = UserSettingsMenu(
             setting = USE_SYSTEM_VOICE_INPUT
         ),
 
+        UserSetting(
+            name = R.string.offline_voice_bridge_pair,
+            component = {
+                val context = LocalContext.current
+                val showConsent = remember { mutableStateOf(false) }
+                val paired = remember { mutableStateOf(OfflineVoiceBridgePairing.capability(context) != null) }
+                NavigationItem(
+                    title = stringResource(R.string.offline_voice_bridge_pair),
+                    subtitle = stringResource(
+                        if (paired.value) R.string.offline_voice_bridge_pair_success
+                        else R.string.offline_voice_bridge_pair_subtitle
+                    ),
+                    style = NavigationItemStyle.Misc,
+                    navigate = { showConsent.value = true }
+                )
+                if (showConsent.value) {
+                    AlertDialog(
+                        title = { Text(stringResource(R.string.offline_voice_bridge_pairing_title)) },
+                        text = { Text(stringResource(R.string.offline_voice_bridge_pairing_message)) },
+                        onDismissRequest = { showConsent.value = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showConsent.value = false
+                                OfflineVoiceBridgePairing.requestPairing(context) { success ->
+                                    paired.value = success
+                                    Toast.makeText(context,
+                                        if (success) R.string.offline_voice_bridge_pair_success
+                                        else R.string.offline_voice_bridge_pair_failed,
+                                        Toast.LENGTH_LONG).show()
+                                }
+                            }) { Text(stringResource(R.string.offline_voice_bridge_pairing_allow)) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showConsent.value = false }) {
+                                Text(stringResource(android.R.string.cancel))
+                            }
+                        }
+                    )
+                }
+            }
+        ),
+
         //if(!systemVoiceInput.value) {
         userSettingToggleDataStore(
             title = R.string.voice_input_settings_indication_sounds,
@@ -105,42 +147,6 @@ val VoiceInputMenu = UserSettingsMenu(
             navigateTo = "languages"
         ).copy(visibilityCheck = visibilityCheckNotSystemVoiceInput),
 
-        UserSetting(
-            name = R.string.offline_voice_bridge_pair,
-            component = {
-                val context = LocalContext.current
-                val showConsent = remember { mutableStateOf(false) }
-                NavigationItem(
-                    title = stringResource(R.string.offline_voice_bridge_pair),
-                    subtitle = stringResource(R.string.offline_voice_bridge_pair_subtitle),
-                    style = NavigationItemStyle.Misc,
-                    navigate = { showConsent.value = true }
-                )
-                if (showConsent.value) {
-                    AlertDialog(
-                        title = { Text(stringResource(R.string.offline_voice_bridge_pairing_title)) },
-                        text = { Text(stringResource(R.string.offline_voice_bridge_pairing_message)) },
-                        onDismissRequest = { showConsent.value = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showConsent.value = false
-                                OfflineVoiceBridgePairing.requestPairing(context) { success ->
-                                    Toast.makeText(context,
-                                        if (success) R.string.offline_voice_bridge_pair_success
-                                        else R.string.offline_voice_bridge_pair_failed,
-                                        Toast.LENGTH_LONG).show()
-                                }
-                            }) { Text(stringResource(R.string.offline_voice_bridge_pairing_allow)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showConsent.value = false }) {
-                                Text(stringResource(android.R.string.cancel))
-                            }
-                        }
-                    )
-                }
-            }
-        ),
         UserSetting(
             name = R.string.offline_voice_bridge_revoke,
             component = {
