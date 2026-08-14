@@ -64,19 +64,6 @@
     <string name="action_voice_input_title">Voice Input</string>
     <!-- Same as the one above but it uses the device's default system voice input instead of the built-in -->
     <string name="action_system_voice_input_title">Voice Input (System)</string>
-    <string name="action_system_voice_input_starting">Starting Offline Voice Input</string>
-    <string name="action_system_voice_input_listening">Offline Voice Input is listening</string>
-    <string name="action_system_voice_input_processing">Offline Voice Input is processing</string>
-    <string name="action_system_voice_input_completed">Offline Voice Input completed</string>
-    <string name="action_system_voice_input_failed">Offline Voice Input failed</string>
-    <string name="action_system_voice_input_futo_microphone_permission">Allow FUTO Keyboard microphone permission, then try again</string>
-    <string name="action_system_voice_input_offline_microphone_permission">Allow Offline Voice Input microphone permission, then try again</string>
-    <string name="action_system_voice_input_error_audio">Offline Voice Input could not open the microphone</string>
-    <string name="action_system_voice_input_error_client">Offline Voice Input service rejected the request</string>
-    <string name="action_system_voice_input_error_no_speech">Offline Voice Input did not detect speech</string>
-    <string name="action_system_voice_input_error_busy">Offline Voice Input is already busy</string>
-    <string name="action_system_voice_input_error_service">Offline Voice Input service or model failed</string>
-    <string name="action_system_voice_input_offline_unavailable">Offline Voice Input is unavailable; opening system voice input</string>
     <string name="action_voice_input_no_model_for_language_x_installed">No voice input model installed for <xliff:g name="language" example="español">%s</xliff:g>, tap to check options?</string>
     <string name="action_voice_input_open_settings_button_to_grant_microphone_permission">Please go to Permissions, and enable Microphone permission to use voice input</string>
 
