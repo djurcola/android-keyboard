@@ -85,18 +85,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".uix.actions.OfflineVoiceBridgePairingActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
-            <intent-filter>
-                <action android:name="org.futo.inputmethod.latin.action.PAIR_OFFLINE_VOICE_BRIDGE" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
         <activity android:name=".uix.ImportResourceActivity"
             android:label="@string/language_settings_import_dictionary_or_model"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
@@ -219,8 +207,6 @@
 
     <!-- To query enabled input methods for voice IME detection -->
     <queries>
-        <!-- Required on Android 11+ before resolving the explicitly targeted offline recognizer. -->
-        <package android:name="dev.notune.transcribe" />
         <intent>
             <action android:name="android.view.InputMethod" />
         </intent>

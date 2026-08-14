@@ -1,16 +1,8 @@
 package org.futo.inputmethod.latin.uix.settings.pages
 
-import android.widget.Toast
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import org.futo.inputmethod.latin.R
-import org.futo.inputmethod.latin.uix.actions.OfflineVoiceBridgePairing
 import org.futo.inputmethod.latin.uix.ANIMATE_BUBBLE
 import org.futo.inputmethod.latin.uix.AUDIO_FOCUS
 import org.futo.inputmethod.latin.uix.CAN_EXPAND_SPACE
@@ -20,9 +12,8 @@ import org.futo.inputmethod.latin.uix.PREFER_BLUETOOTH
 import org.futo.inputmethod.latin.uix.USE_PERSONAL_DICT
 import org.futo.inputmethod.latin.uix.USE_SYSTEM_VOICE_INPUT
 import org.futo.inputmethod.latin.uix.USE_VAD_AUTOSTOP
-import org.futo.inputmethod.latin.uix.settings.NavigationItem
+import org.futo.inputmethod.latin.uix.VERBOSE_PROGRESS
 import org.futo.inputmethod.latin.uix.settings.NavigationItemStyle
-import org.futo.inputmethod.latin.uix.settings.UserSetting
 import org.futo.inputmethod.latin.uix.settings.UserSettingsMenu
 import org.futo.inputmethod.latin.uix.settings.useDataStoreValue
 import org.futo.inputmethod.latin.uix.settings.userSettingNavigationItem
@@ -40,48 +31,6 @@ val VoiceInputMenu = UserSettingsMenu(
             title = R.string.voice_input_settings_disable_builtin_voice_input,
             subtitle = R.string.voice_input_settings_disable_builtin_voice_input_subtitle,
             setting = USE_SYSTEM_VOICE_INPUT
-        ),
-
-        UserSetting(
-            name = R.string.offline_voice_bridge_pair,
-            component = {
-                val context = LocalContext.current
-                val showConsent = remember { mutableStateOf(false) }
-                val paired = remember { mutableStateOf(OfflineVoiceBridgePairing.capability(context) != null) }
-                NavigationItem(
-                    title = stringResource(R.string.offline_voice_bridge_pair),
-                    subtitle = stringResource(
-                        if (paired.value) R.string.offline_voice_bridge_pair_success
-                        else R.string.offline_voice_bridge_pair_subtitle
-                    ),
-                    style = NavigationItemStyle.Misc,
-                    navigate = { showConsent.value = true }
-                )
-                if (showConsent.value) {
-                    AlertDialog(
-                        title = { Text(stringResource(R.string.offline_voice_bridge_pairing_title)) },
-                        text = { Text(stringResource(R.string.offline_voice_bridge_pairing_message)) },
-                        onDismissRequest = { showConsent.value = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showConsent.value = false
-                                OfflineVoiceBridgePairing.requestPairing(context) { success ->
-                                    paired.value = success
-                                    Toast.makeText(context,
-                                        if (success) R.string.offline_voice_bridge_pair_success
-                                        else R.string.offline_voice_bridge_pair_failed,
-                                        Toast.LENGTH_LONG).show()
-                                }
-                            }) { Text(stringResource(R.string.offline_voice_bridge_pairing_allow)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showConsent.value = false }) {
-                                Text(stringResource(android.R.string.cancel))
-                            }
-                        }
-                    )
-                }
-            }
         ),
 
         //if(!systemVoiceInput.value) {
@@ -146,18 +95,6 @@ val VoiceInputMenu = UserSettingsMenu(
             style = NavigationItemStyle.Misc,
             navigateTo = "languages"
         ).copy(visibilityCheck = visibilityCheckNotSystemVoiceInput),
-
-        UserSetting(
-            name = R.string.offline_voice_bridge_revoke,
-            component = {
-                val context = LocalContext.current
-                NavigationItem(
-                    title = stringResource(R.string.offline_voice_bridge_revoke),
-                    style = NavigationItemStyle.Misc,
-                    navigate = { OfflineVoiceBridgePairing.revoke(context) }
-                )
-            }
-        ),
         //}
     )
 )

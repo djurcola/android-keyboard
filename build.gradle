@@ -335,7 +335,6 @@ android {
                     'java/res-large'
             ]
             java.srcDirs = ['common/src', 'java/src']
-            aidl.srcDirs = ['java/aidl']
             manifest.srcFile 'java/AndroidManifest.xml'
             assets.srcDirs = ['java/assets']
         }
@@ -389,7 +388,6 @@ android {
         jvmTarget = '1.8'
     }
     buildFeatures {
-        aidl true
         compose true
         viewBinding true
         mlModelBinding true
