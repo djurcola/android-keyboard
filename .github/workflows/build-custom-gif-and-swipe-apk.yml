@@ -38,7 +38,8 @@ jobs:
       - name: Build unstable debug APK
         run: ./gradlew assembleUnstableDebug --console=plain
         env:
-          VERSION_CODE: ${{ github.run_number }}
+          # Keep custom builds above the previously distributed test series (43632).
+          VERSION_CODE: 500${{ github.run_number }}
           VERSION_NAME: 0.1.30-custom.${{ github.run_number }}
           BRANCH_NAME: ${{ github.ref_name }}
 
@@ -57,7 +58,9 @@ jobs:
           name: Custom GIF + Swipe build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           body: |
-            Automated custom FUTO Keyboard build containing the GIF action and swipe-to-delete refinement.
+            Automated custom FUTO Keyboard build containing the GIF action, swipe-to-delete refinement,
+            and the restored standard Android system voice-input behavior. The experimental direct
+            Offline Voice Input integration has been retired.
 
             This is an unstable development build from `custom/gif-and-swipe`.
           files: build/outputs/apk/unstable/debug/*.apk
