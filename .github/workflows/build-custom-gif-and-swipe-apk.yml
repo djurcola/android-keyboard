@@ -33,7 +33,7 @@ jobs:
       - name: Install native build dependencies
         run: |
           yes | sdkmanager --licenses
-          sdkmanager "ndk;28.2.13676358" "cmake;3.22.1"
+          sdkmanager "build-tools;35.0.0" "ndk;28.2.13676358" "cmake;3.22.1"
 
       - name: Decode CI test keystore
         env:
@@ -56,8 +56,8 @@ jobs:
           test -s "$keystore_path"
           keytool -list -keystore "$keystore_path" -storepass "$ANDROID_TEST_KEYSTORE_PASSWORD" -alias "$ANDROID_TEST_KEY_ALIAS" > /dev/null
 
-      - name: Build unstable debug APK
-        run: ./gradlew assembleUnstableDebug --console=plain
+      - name: Build and rotate unstable debug APK
+        run: ./gradlew rotateUnstableDebugSigning --console=plain
         env:
           # Keep custom builds above the previously distributed test series (43632).
           VERSION_CODE: 500${{ github.run_number }}
@@ -67,6 +67,7 @@ jobs:
           ANDROID_TEST_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_TEST_KEYSTORE_PASSWORD }}
           ANDROID_TEST_KEY_ALIAS: ${{ secrets.ANDROID_TEST_KEY_ALIAS }}
           ANDROID_TEST_KEY_PASSWORD: ${{ secrets.ANDROID_TEST_KEY_PASSWORD }}
+          FUTO_SIGNING_ROTATION: "true"
 
       - name: Upload testing APK
         uses: actions/upload-artifact@v4

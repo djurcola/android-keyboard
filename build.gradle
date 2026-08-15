@@ -187,8 +187,12 @@ def ciTestKeyAlias = System.getenv('ANDROID_TEST_KEY_ALIAS')?.trim()
 def ciTestKeyPassword = System.getenv('ANDROID_TEST_KEY_PASSWORD')?.trim()
 def ciTestSigningInputs = [ciTestKeystorePath, ciTestKeystorePassword, ciTestKeyAlias, ciTestKeyPassword]
 def ciTestSigningConfigured = ciTestSigningInputs.every { it }
+def signingRotationEnabled = System.getenv('FUTO_SIGNING_ROTATION')?.trim()?.toBoolean()
 if (ciTestSigningInputs.any { it } && !ciTestSigningConfigured) {
     throw new GradleException('Incomplete CI test-signing configuration')
+}
+if (signingRotationEnabled && !ciTestSigningConfigured) {
+    throw new GradleException('CI test-signing configuration is required')
 }
 
 android {
@@ -227,7 +231,7 @@ android {
         debug {
             // Keep the bundled debug key for local builds without CI test-signing input.
             storeFile file("java/shared.keystore")
-            if (ciTestSigningConfigured) {
+            if (ciTestSigningConfigured && !signingRotationEnabled) {
                 storeFile file(ciTestKeystorePath)
                 storePassword ciTestKeystorePassword
                 keyAlias ciTestKeyAlias
@@ -414,6 +418,86 @@ android {
     packagingOptions {
         jniLibs {
             useLegacyPackaging = true
+        }
+    }
+}
+
+// This task intentionally uses the existing debug signing config as the old signer only at runtime.
+tasks.register('rotateUnstableDebugSigning') {
+    dependsOn 'assembleUnstableDebug'
+
+    doLast {
+        if (!signingRotationEnabled) {
+            throw new GradleException('FUTO_SIGNING_ROTATION=true is required for signing-certificate rotation')
+        }
+
+        def apk = file('build/outputs/apk/unstable/debug/android-keyboard-unstable-debug.apk')
+        if (!apk.isFile()) {
+            throw new GradleException('Expected unstable debug APK was not produced')
+        }
+
+        def oldSigner = android.signingConfigs.debug
+        def oldSignerInputs = [oldSigner.storeFile, oldSigner.storePassword, oldSigner.keyAlias, oldSigner.keyPassword]
+        if (oldSignerInputs.any { !it }) {
+            throw new GradleException('Legacy debug signing configuration is incomplete')
+        }
+
+        def buildToolsDir = new File(android.sdkDirectory, 'build-tools')
+        def apksignerCandidates = buildToolsDir.listFiles()?.findAll {
+            it.isDirectory() && new File(it, 'apksigner').isFile() && new File(it, 'apksigner').canExecute()
+        } ?: []
+        apksignerCandidates.sort { left, right ->
+            def leftParts = left.name.tokenize('.-').collect { it.isInteger() ? it.toInteger() : -1 }
+            def rightParts = right.name.tokenize('.-').collect { it.isInteger() ? it.toInteger() : -1 }
+            for (int index = 0; index < Math.max(leftParts.size(), rightParts.size()); index++) {
+                def comparison = (index < leftParts.size() ? leftParts[index] : 0) <=>
+                        (index < rightParts.size() ? rightParts[index] : 0)
+                if (comparison != 0) return comparison
+            }
+            left.name <=> right.name
+        }
+        if (apksignerCandidates.isEmpty()) {
+            throw new GradleException('No usable Android SDK Build Tools apksigner was found')
+        }
+        def apksigner = new File(apksignerCandidates.last(), 'apksigner')
+
+        def rotationDir = new File(temporaryDir, 'signing-certificate-rotation')
+        rotationDir.mkdirs()
+        def lineage = new File(rotationDir, 'lineage')
+        def signedApk = new File(rotationDir, 'resigned.apk')
+        try {
+            def runApksigner = { List<String> arguments ->
+                exec {
+                    commandLine([apksigner.absolutePath] + arguments)
+                }
+            }
+            def signerArguments = { signer ->
+                [
+                        '--ks', signer.storeFile.absolutePath,
+                        '--ks-key-alias', signer.keyAlias,
+                        '--ks-pass', "pass:${signer.storePassword}",
+                        '--key-pass', "pass:${signer.keyPassword}"
+                ]
+            }
+
+            runApksigner(['rotate', '--out', lineage.absolutePath, '--old-signer'] +
+                    signerArguments(oldSigner) + ['--set-installed-data', 'true', '--new-signer', '--ks', ciTestKeystorePath,
+                    '--ks-key-alias', ciTestKeyAlias, '--ks-pass', "pass:${ciTestKeystorePassword}",
+                    '--key-pass', "pass:${ciTestKeyPassword}"])
+            runApksigner(['sign', '--out', signedApk.absolutePath, '--lineage', lineage.absolutePath,
+                    '--rotation-min-sdk-version', '33'] + signerArguments(oldSigner) +
+                    ['--next-signer', '--ks', ciTestKeystorePath,
+                    '--ks-key-alias', ciTestKeyAlias, '--ks-pass', "pass:${ciTestKeystorePassword}",
+                    '--key-pass', "pass:${ciTestKeyPassword}", apk.absolutePath])
+            java.nio.file.Files.move(signedApk.toPath(), apk.toPath(),
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            runApksigner(['verify', '--verbose', '--min-sdk-version', '24', apk.absolutePath])
+            runApksigner(['verify', '--verbose', '--min-sdk-version', '35', apk.absolutePath])
+        } finally {
+            lineage.delete()
+            signedApk.delete()
+            rotationDir.deleteDir()
         }
     }
 }
