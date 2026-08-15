@@ -35,6 +35,27 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "ndk;28.2.13676358" "cmake;3.22.1"
 
+      - name: Decode CI test keystore
+        env:
+          ANDROID_TEST_KEYSTORE_B64: ${{ secrets.ANDROID_TEST_KEYSTORE_B64 }}
+          ANDROID_TEST_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_TEST_KEYSTORE_PASSWORD }}
+          ANDROID_TEST_KEY_ALIAS: ${{ secrets.ANDROID_TEST_KEY_ALIAS }}
+          ANDROID_TEST_KEY_PASSWORD: ${{ secrets.ANDROID_TEST_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for variable in ANDROID_TEST_KEYSTORE_B64 ANDROID_TEST_KEYSTORE_PASSWORD ANDROID_TEST_KEY_ALIAS ANDROID_TEST_KEY_PASSWORD; do
+            if [ -z "${!variable:-}" ]; then
+              echo "Required test-signing input is missing: $variable" >&2
+              exit 1
+            fi
+          done
+          keystore_path="$RUNNER_TEMP/android-test.keystore"
+          umask 077
+          printf '%s' "$ANDROID_TEST_KEYSTORE_B64" | base64 --decode > "$keystore_path"
+          chmod 600 "$keystore_path"
+          test -s "$keystore_path"
+          keytool -list -keystore "$keystore_path" -storepass "$ANDROID_TEST_KEYSTORE_PASSWORD" -alias "$ANDROID_TEST_KEY_ALIAS" > /dev/null
+
       - name: Build unstable debug APK
         run: ./gradlew assembleUnstableDebug --console=plain
         env:
@@ -42,12 +63,16 @@ jobs:
           VERSION_CODE: 500${{ github.run_number }}
           VERSION_NAME: 0.1.30-custom.${{ github.run_number }}
           BRANCH_NAME: ${{ github.ref_name }}
+          ANDROID_TEST_KEYSTORE_PATH: ${{ runner.temp }}/android-test.keystore
+          ANDROID_TEST_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_TEST_KEYSTORE_PASSWORD }}
+          ANDROID_TEST_KEY_ALIAS: ${{ secrets.ANDROID_TEST_KEY_ALIAS }}
+          ANDROID_TEST_KEY_PASSWORD: ${{ secrets.ANDROID_TEST_KEY_PASSWORD }}
 
       - name: Upload testing APK
         uses: actions/upload-artifact@v4
         with:
           name: android-keyboard-custom-gif-and-swipe-${{ github.sha }}
-          path: build/outputs/apk/unstable/debug/*.apk
+          path: build/outputs/apk/unstable/debug/android-keyboard-unstable-debug.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -63,5 +88,5 @@ jobs:
             Offline Voice Input integration has been retired.
 
             This is an unstable development build from `custom/gif-and-swipe`.
-          files: build/outputs/apk/unstable/debug/*.apk
+          files: build/outputs/apk/unstable/debug/android-keyboard-unstable-debug.apk
           generate_release_notes: true

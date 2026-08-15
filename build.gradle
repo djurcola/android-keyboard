@@ -181,6 +181,16 @@ tasks.register('updateContributors') {
 
 preBuild.dependsOn updateLocales
 
+def ciTestKeystorePath = System.getenv('ANDROID_TEST_KEYSTORE_PATH')?.trim()
+def ciTestKeystorePassword = System.getenv('ANDROID_TEST_KEYSTORE_PASSWORD')?.trim()
+def ciTestKeyAlias = System.getenv('ANDROID_TEST_KEY_ALIAS')?.trim()
+def ciTestKeyPassword = System.getenv('ANDROID_TEST_KEY_PASSWORD')?.trim()
+def ciTestSigningInputs = [ciTestKeystorePath, ciTestKeystorePassword, ciTestKeyAlias, ciTestKeyPassword]
+def ciTestSigningConfigured = ciTestSigningInputs.every { it }
+if (ciTestSigningInputs.any { it } && !ciTestSigningConfigured) {
+    throw new GradleException('Incomplete CI test-signing configuration')
+}
+
 android {
     namespace 'org.futo.inputmethod.latin'
 
@@ -215,13 +225,20 @@ android {
 
     signingConfigs {
         debug {
+            // Keep the bundled debug key for local builds without CI test-signing input.
             storeFile file("java/shared.keystore")
+            if (ciTestSigningConfigured) {
+                storeFile file(ciTestKeystorePath)
+                storePassword ciTestKeystorePassword
+                keyAlias ciTestKeyAlias
+                keyPassword ciTestKeyPassword
+            }
         }
     }
 
     final def keystorePropertiesFile = rootProject.file("keystore.properties")
     def releaseSigning = signingConfigs.debug
-    if (keystorePropertiesFile.exists()) {
+    if (!ciTestSigningConfigured && keystorePropertiesFile.exists()) {
         final def keystoreProperties = new Properties()
         keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
         releaseSigning = signingConfigs.create("release") {
