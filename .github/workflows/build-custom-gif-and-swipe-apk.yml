@@ -74,7 +74,9 @@ jobs:
           name: android-keyboard-custom-gif-and-swipe-${{ github.sha }}
           path: build/outputs/apk/unstable/debug/android-keyboard-unstable-debug.apk
           if-no-files-found: error
-          retention-days: 14
+          # The identical APK is published as a GitHub Release asset below for Obtainium.
+          # Keep this CI-only copy just long enough for immediate build inspection.
+          retention-days: 1
 
       - name: Publish GitHub Release for Obtainium
         uses: softprops/action-gh-release@v2
