@@ -978,6 +978,13 @@ class LatinIME : InputMethodServiceCompose(), LatinIMELegacy.SuggestionStripCont
         // TODO: Spell checker service
     }
 
+    /// Switch to voice IME or to internal one if it's no longer present.
+    fun trySwitchToShortcutIMEorInternal() {
+        if(!latinIMELegacy.mRichImm.switchToShortcutIme(this)) {
+            uixManager.activateInternalVoiceIME()
+        }
+    }
+
     override val foldState: FoldingOptions
         get() = uixManager.foldingOptions.value
 

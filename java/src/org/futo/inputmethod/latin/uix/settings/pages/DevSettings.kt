@@ -1,6 +1,5 @@
 package org.futo.inputmethod.latin.uix.settings.pages
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -68,15 +67,13 @@ import org.futo.inputmethod.latin.uix.settings.ScreenTitle
 import org.futo.inputmethod.latin.uix.settings.ScrollableList
 import org.futo.inputmethod.latin.uix.settings.SettingToggleDataStore
 import org.futo.inputmethod.latin.uix.settings.SettingToggleRaw
+import org.futo.inputmethod.latin.uix.settings.VoiceInputSwitchActivity
 import org.futo.inputmethod.latin.uix.settings.useDataStore
 import org.futo.inputmethod.latin.uix.settings.useDataStoreValue
 import org.futo.inputmethod.latin.uix.theme.TonalPalette
-import org.futo.inputmethod.latin.uix.theme.Tones
-import org.futo.inputmethod.latin.uix.theme.Typography
 import org.futo.inputmethod.latin.uix.theme.dynamicTonalPalette
 import org.futo.inputmethod.latin.uix.theme.serialization.AlphaOrder
 import org.futo.inputmethod.latin.uix.theme.serialization.argbLongToHexColorString
-import org.futo.inputmethod.latin.uix.theme.serialization.long
 import org.futo.inputmethod.latin.xlm.AllowTransformerOnNonQWERTYLayouts
 import org.futo.inputmethod.updates.DISABLE_UPDATE_REMINDER
 import org.futo.inputmethod.updates.dismissedMigrateUpdateNotice
@@ -349,6 +346,18 @@ fun DeveloperScreen(navController: NavHostController = rememberNavController()) 
         )
 
         ScreenTitle(title = "Here be dragons")
+        val context = LocalContext.current
+        NavigationItem(
+            title = "Show voice input switcher",
+            style = NavigationItemStyle.MiscNoArrow,
+            navigate = {
+                val intent = Intent(context, VoiceInputSwitchActivity::class.java)
+                intent.putExtra("targetPackage", context.packageName)
+                intent.putExtra("mode", "popup")
+                context.startActivity(intent)
+            }
+        )
+
         SettingToggleDataStore(
             "Use expandable suggestions UI for all languages",
             UseExpandableSuggestionsForGeneralIME,
